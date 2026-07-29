@@ -1,0 +1,127 @@
+<script>
+
+function login(){
+
+let username=document.getElementById("username").value;
+
+let password=document.getElementById("password").value;
+
+google.script.run
+.withSuccessHandler(function(status){
+
+if(status){
+
+google.script.run
+.withSuccessHandler(function(html){
+
+    document.getElementById("app").innerHTML = html;
+
+    const tanggal = document.getElementById("tanggal");
+    if(tanggal){
+        tanggal.innerHTML = new Date().toLocaleDateString("id-ID");
+    }
+
+})
+.getDashboard();
+}else{
+
+document.getElementById("pesan").innerHTML="Username atau Password Salah";
+
+}
+
+})
+.login(username,password);
+
+}
+
+function logout(){
+
+location.reload();
+
+}
+
+function loadPenduduk(){
+
+google.script.run
+
+.withSuccessHandler(function(data){
+
+let html="";
+
+for(let i=1;i<data.length;i++){
+
+html+=`
+
+<tr>
+
+<td>${data[i][0]}</td>
+
+<td>${data[i][1]}</td>
+
+<td>${data[i][2]}</td>
+
+<td>${data[i][3]}</td>
+
+<td>${data[i][6]}</td>
+
+<td>
+
+<button>Edit</button>
+
+<button>Hapus</button>
+
+</td>
+
+</tr>
+
+`;
+
+}function showPenduduk(){
+
+    google.script.run
+    .withSuccessHandler(function(html){
+
+        document.getElementById("content").innerHTML = html;
+
+        loadPenduduk();
+
+    })
+    .getPendudukPage();
+
+}
+
+function loadPenduduk(){
+
+    google.script.run
+    .withSuccessHandler(function(data){
+
+        let html="";
+
+        for(let i=1;i<data.length;i++){
+
+            html += `
+            <tr>
+                <td>${data[i][0]}</td>
+                <td>${data[i][1]}</td>
+                <td>${data[i][2]}</td>
+                <td>${data[i][3]}</td>
+                <td>${data[i][6]}</td>
+            </tr>`;
+        }
+
+        document.querySelector("#tblPenduduk tbody").innerHTML = html;
+
+    })
+    .getPenduduk();
+
+}
+
+document.querySelector("#tblPenduduk tbody").innerHTML=html;
+
+})
+
+.getPenduduk();
+
+}
+
+</script>
