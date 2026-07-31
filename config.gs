@@ -1,9 +1,13 @@
 const SPREADSHEET_ID = "1UC3ib4HfNRGW3SqQtg8k_tPAQzym7EohO8mdKKWE5XE";
 
-// Fungsi Koneksi Sheet
+// Mengambil objek Spreadsheet utuh (dipakai modul yang butuh akses ke banyak sheet sekaligus)
+function getDatabase() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+// Fungsi Koneksi ke satu Sheet tertentu
 function getSheet(sheetName) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  return ss.getSheetByName(sheetName);
+  return getDatabase().getSheetByName(sheetName);
 }
 
 // Utilitas Mengubah Data Sheet Menjadi Format JSON
@@ -12,7 +16,7 @@ function getSheetDataAsJson(sheetName) {
   if (!sheet) return [];
   
   const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return []; // Jika hanya baris header
+  if (data.length <= 1) return [];
   
   const headers = data[0];
   const rows = data.slice(1);
@@ -34,7 +38,7 @@ function hashPassword(text) {
     Utilities.Charset.UTF_8
   );
   var txtHash = '';
-  for (i = 0; i < rawHash.length; i++) {
+  for (var i = 0; i < rawHash.length; i++) {
     var byteVal = rawHash[i];
     if (byteVal < 0) byteVal += 256;
     var byteStr = byteVal.toString(16);

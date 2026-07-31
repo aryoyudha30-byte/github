@@ -1,79 +1,97 @@
 <div class="dashboard">
 
-    <aside class="sidebar">
+  <aside class="sidebar">
 
-        <div class="brand">
-            🏛️
-            <h2>Admin Desa</h2>
-        </div>
+    <div class="brand">
+      🏛️
+      <h2>Admin Desa</h2>
+    </div>
 
-        <ul class="menu">
-            <li class="active">🏠 Dashboard</li>
-            <li>👥 Data Penduduk</li>
-            <li>📥 Surat Masuk</li>
-            <li>📤 Surat Keluar</li>
-            <li>📝 Pelayanan Surat</li>
-            <li>📢 Pengaduan</li>
-            <li>📅 Agenda</li>
-            <li>🏢 Inventaris</li>
-            <li>⚙️ Pengaturan</li>
-            <li onclick="logout()">🚪 Logout</li>
-        </ul>
+    <ul class="menu">
+      <li class="active">🏠 Dashboard</li>
+      <li onclick="showPenduduk()">👥 Data Penduduk</li>
+      <li>🏠 Data KK</li>
+      <li>📥 Surat Masuk</li>
+      <li>📤 Surat Keluar</li>
+      <li>📝 Pelayanan Surat</li>
+      <li>📢 Pengaduan</li>
+      <li>📅 Agenda</li>
+      <li>🏢 Inventaris</li>
+      <li onclick="logout()">🚪 Logout</li>
+    </ul>
 
-    </aside>
+  </aside>
 
-    <main class="content">
+  <main class="content">
 
-        <header class="topbar">
-
-            <h1>Dashboard</h1>
-
-            <span id="tanggal"></span>
-
-        </header>
-
-        <div class="cards">
-
-            <div class="card">
-                <h3>Total Penduduk</h3>
-                <h2>0</h2>
-            </div>
-
-            <div class="card">
-                <h3>Surat Masuk</h3>
-                <h2>0</h2>
-            </div>
-
-            <div class="card">
-                <h3>Pengaduan</h3>
-                <h2>0</h2>
-            </div>
-
-            <div class="card">
-                <h3>Agenda</h3>
-                <h2>0</h2>
-            </div>
-
-        </div>
-
-        <div class="welcome">
-
-            <h2>Selamat Datang 👋</h2>
-
-            <p>Sistem Administrasi Desa berbasis Google Apps Script.</p>
-
-        </div>
-
-    </main>
-
-</div>
-
-<div class="main-content">
+    <header class="topbar">
+      <h1>Dashboard</h1>
+      <span id="tanggal"></span>
+    </header>
 
     <div id="content">
 
-        Dashboard
+      <div class="cards">
+
+        <div class="card">
+          <h3>👥 Penduduk</h3>
+          <h2 id="totalPenduduk">0</h2>
+        </div>
+
+        <div class="card">
+          <h3>🏠 KK</h3>
+          <h2 id="totalKK">0</h2>
+        </div>
+
+        <div class="card">
+          <h3>📥 Surat Masuk</h3>
+          <h2 id="totalSuratMasuk">0</h2>
+        </div>
+
+        <div class="card">
+          <h3>📤 Surat Keluar</h3>
+          <h2 id="totalSuratKeluar">0</h2>
+        </div>
+
+        <div class="card">
+          <h3>📢 Pengaduan</h3>
+          <h2 id="totalPengaduan">0</h2>
+        </div>
+
+        <div class="card">
+          <h3>📅 Agenda</h3>
+          <h2 id="totalAgenda">0</h2>
+        </div>
+
+      </div>
+
+      <div class="welcome">
+
+        <hr>
+
+<h3>📢 Aktivitas Terbaru</h3>
+
+<ul id="aktivitasTerbaru">
+    <li>Belum ada aktivitas.</li>
+</ul>
+
+<hr>
+
+<h3>🔔 Notifikasi</h3>
+
+<ul id="notifikasi">
+    <li>Tidak ada notifikasi.</li>
+</ul>
+
+        <h2>📅 Agenda Hari Ini</h2>
+        <ul>
+          <li>Posyandu</li>
+          <li>Musyawarah Desa</li>
+        </ul>
+      </div>
 
     </div>
+
+  </main>
 
 </div>

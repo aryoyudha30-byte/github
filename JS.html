@@ -1,127 +1,197 @@
 <script>
 
-function login(){
+// Menyimpan token sesi login selama halaman dibuka (hilang otomatis kalau di-refresh -> harus login ulang)
+let SESSION_TOKEN = null;
 
-let username=document.getElementById("username").value;
+// ===============================
+// LOGIN & PASSWORD TOGGLE
+// ===============================
 
-let password=document.getElementById("password").value;
-
-google.script.run
-.withSuccessHandler(function(status){
-
-if(status){
-
-google.script.run
-.withSuccessHandler(function(html){
-
-    document.getElementById("app").innerHTML = html;
-
-    const tanggal = document.getElementById("tanggal");
-    if(tanggal){
-        tanggal.innerHTML = new Date().toLocaleDateString("id-ID");
-    }
-
-})
-.getDashboard();
-}else{
-
-document.getElementById("pesan").innerHTML="Username atau Password Salah";
-
+function togglePasswordVisibility(){
+  const pwd = document.getElementById("password");
+  const icon = document.getElementById("togglePassword");
+  if (pwd.type === "password") {
+    pwd.type = "text";
+    icon.textContent = "🙈";
+  } else {
+    pwd.type = "password";
+    icon.textContent = "👁️";
+  }
 }
 
-})
-.login(username,password);
+function login(){
+  let username = document.getElementById("username").value;
+  let password = document.getElementById("password").value;
 
+  google.script.run
+    .withSuccessHandler(function(result){
+      if (result.success) {
+        SESSION_TOKEN = result.token; // simpan token dari server
+
+        google.script.run
+          .withSuccessHandler(function(html){
+            document.getElementById("app").innerHTML = html;
+            const tanggal = document.getElementById("tanggal");
+            if (tanggal) {
+              tanggal.innerHTML = new Date().toLocaleDateString("id-ID");
+            }
+            // Setelah dashboard tampil, muat statistik & aktivitas terbaru
+            loadDashboard();
+            loadAktivitasTerbaru();
+          })
+          .getDashboard();
+
+      } else {
+        document.getElementById("pesan").innerHTML = result.message;
+      }
+    })
+    .withFailureHandler(function(err){
+      document.getElementById("pesan").innerHTML = "Terjadi kesalahan: " + err.message;
+    })
+    .checkLogin(username, password);
 }
 
 function logout(){
-
-location.reload();
-
+  SESSION_TOKEN = null;
+  location.reload();
 }
 
-function loadPenduduk(){
+// ===============================
+// DASHBOARD
+// ===============================
 
-google.script.run
+function loadDashboard(){
+  google.script.run
+    .withSuccessHandler(function(data){
+      document.getElementById("totalPenduduk").innerText = data.penduduk;
+      document.getElementById("totalKK").innerText = data.kk;
+      document.getElementById("totalSuratMasuk").innerText = data.suratMasuk;
+      document.getElementById("totalSuratKeluar").innerText = data.suratKeluar;
+      document.getElementById("totalPengaduan").innerText = data.pengaduan;
+      document.getElementById("totalAgenda").innerText = data.agenda;
+    })
+    .withFailureHandler(function(err){
+      console.error("Gagal memuat dashboard:", err.message);
+    })
+    .getDashboardStats(); // NAMA FUNGSI DISESUAIKAN dengan Dashboard.gs
+}
 
-.withSuccessHandler(function(data){
+function loadAktivitasTerbaru(){
+  google.script.run
+    .withSuccessHandler(function(list){
+      const ul = document.getElementById("aktivitasTerbaru");
+      if (!ul) return;
 
-let html="";
+      if (!list || list.length === 0) {
+        ul.innerHTML = "<li>Belum ada aktivitas.</li>";
+        return;
+      }
 
-for(let i=1;i<data.length;i++){
+      ul.innerHTML = list.map(item =>
+        `<li>${item.username} - ${item.aksi} (${new Date(item.waktu).toLocaleString("id-ID")})</li>`
+      ).join("");
+    })
+    .withFailureHandler(function(err){
+      console.error("Gagal memuat aktivitas:", err.message);
+    })
+    .getAktivitasTerbaru(SESSION_TOKEN);
+}
 
-html+=`
+// ===============================
+// PENDUDUK
+// ===============================
 
-<tr>
-
-<td>${data[i][0]}</td>
-
-<td>${data[i][1]}</td>
-
-<td>${data[i][2]}</td>
-
-<td>${data[i][3]}</td>
-
-<td>${data[i][6]}</td>
-
-<td>
-
-<button>Edit</button>
-
-<button>Hapus</button>
-
-</td>
-
-</tr>
-
-`;
-
-}function showPenduduk(){
-
-    google.script.run
+function showPenduduk(){
+  google.script.run
     .withSuccessHandler(function(html){
-
-        document.getElementById("content").innerHTML = html;
-
-        loadPenduduk();
-
+      document.getElementById("content").innerHTML = html;
+      loadPenduduk();
     })
     .getPendudukPage();
-
 }
 
 function loadPenduduk(){
-
-    google.script.run
+  google.script.run
     .withSuccessHandler(function(data){
-
-        let html="";
-
-        for(let i=1;i<data.length;i++){
-
-            html += `
-            <tr>
-                <td>${data[i][0]}</td>
-                <td>${data[i][1]}</td>
-                <td>${data[i][2]}</td>
-                <td>${data[i][3]}</td>
-                <td>${data[i][6]}</td>
-            </tr>`;
-        }
-
-        document.querySelector("#tblPenduduk tbody").innerHTML = html;
-
+      let html = "";
+      for (let i = 1; i < data.length; i++) {
+        html += `
+          <tr>
+            <td>${data[i][0]}</td>
+            <td>${data[i][1]}</td>
+            <td>${data[i][2]}</td>
+            <td>${data[i][3]}</td>
+            <td>${data[i][6]}</td>
+            <td>
+              <button onclick="hapusPenduduk('${data[i][0]}')">Hapus</button>
+            </td>
+          </tr>`;
+      }
+      document.querySelector("#tblPenduduk tbody").innerHTML = html;
     })
-    .getPenduduk();
-
+    .withFailureHandler(function(err){
+      alert("Gagal memuat data Penduduk: " + err.message);
+    })
+    .getPenduduk(SESSION_TOKEN);
 }
 
-document.querySelector("#tblPenduduk tbody").innerHTML=html;
+function showFormPenduduk(){
+  document.getElementById("modalPenduduk").style.display = "flex";
+}
 
-})
+function tutupModalPenduduk(){
+  document.getElementById("modalPenduduk").style.display = "none";
+}
 
-.getPenduduk();
+function simpanPenduduk(){
+  const data = {
+    nik: document.getElementById("nik").value,
+    nama: document.getElementById("nama").value,
+    jk: document.getElementById("jk").value,
+    tempat: document.getElementById("tempat").value,
+    tgl: document.getElementById("tgl").value,
+    alamat: document.getElementById("alamat").value,
+    rt: document.getElementById("rt").value,
+    rw: document.getElementById("rw").value,
+    hp: document.getElementById("hp").value
+  };
 
+  google.script.run
+    .withSuccessHandler(function(){
+      alert("Data berhasil disimpan");
+      tutupModalPenduduk();
+      loadPenduduk();
+      loadDashboard();
+    })
+    .withFailureHandler(function(err){
+      alert("Gagal menyimpan data: " + err.message);
+    })
+    .tambahPenduduk(SESSION_TOKEN, data); // token WAJIB dikirim duluan
+}
+
+function hapusPenduduk(id){
+  if(confirm("Yakin ingin menghapus data ini?")){
+    google.script.run
+      .withSuccessHandler(function(){
+        loadPenduduk();
+        loadDashboard();
+      })
+      .withFailureHandler(function(err){
+        alert("Gagal menghapus data: " + err.message);
+      })
+      .hapusPenduduk(SESSION_TOKEN, id); // token WAJIB dikirim duluan
+  }
+}
+
+function cariPenduduk(){
+  const keyword = document.getElementById("cariPenduduk").value.toLowerCase();
+  const rows = document.querySelectorAll("#tblPenduduk tbody tr");
+
+  rows.forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(keyword)
+      ? ""
+      : "none";
+  });
 }
 
 </script>

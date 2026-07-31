@@ -15,10 +15,13 @@
             id="username"
             placeholder="Username">
 
-        <input
-            type="password"
-            id="password"
-            placeholder="Password">
+        <div class="password-wrapper">
+            <input
+                type="password"
+                id="password"
+                placeholder="Password">
+            <span id="togglePassword" onclick="togglePasswordVisibility()">👁️</span>
+        </div>
 
         <button onclick="login()">
             LOGIN
@@ -29,3 +32,23 @@
     </div>
 
 </div>
+
+<style>
+.password-wrapper {
+    position: relative;
+}
+.password-wrapper input {
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 40px;
+}
+#togglePassword {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    user-select: none;
+    font-size: 18px;
+}
+</style>

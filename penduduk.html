@@ -1,25 +1,52 @@
-<div class="container">
+<div class="page">
 
+  <div class="page-header">
     <h2>👥 Data Penduduk</h2>
+    <button onclick="showFormPenduduk()">➕ Tambah</button>
+  </div>
 
-    <button onclick="loadPenduduk()">🔄 Refresh Data</button>
+  <input type="text" id="cariPenduduk"
+         placeholder="Cari Nama atau NIK..."
+         onkeyup="cariPenduduk()">
 
-    <table id="tblPenduduk" border="1" width="100%" cellspacing="0">
+  <table id="tblPenduduk">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>NIK</th>
+        <th>Nama</th>
+        <th>JK</th>
+        <th>Alamat</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>NIK</th>
-                <th>Nama</th>
-                <th>JK</th>
-                <th>Alamat</th>
-            </tr>
-        </thead>
+</div>
 
-        <tbody>
+<div id="modalPenduduk" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h3>Tambah Penduduk</h3>
 
-        </tbody>
+    <input id="nik" placeholder="NIK">
+    <input id="nama" placeholder="Nama">
 
-    </table>
+    <select id="jk">
+      <option>Laki-laki</option>
+      <option>Perempuan</option>
+    </select>
 
+    <input id="tempat" placeholder="Tempat Lahir">
+    <input id="tgl" type="date">
+    <textarea id="alamat" placeholder="Alamat"></textarea>
+    <input id="rt" placeholder="RT">
+    <input id="rw" placeholder="RW">
+    <input id="hp" placeholder="No HP">
+
+    <div class="modal-actions">
+      <button onclick="simpanPenduduk()">💾 Simpan</button>
+      <button onclick="tutupModalPenduduk()">❌ Batal</button>
+    </div>
+  </div>
 </div>
