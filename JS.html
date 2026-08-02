@@ -4,6 +4,23 @@
 let SESSION_TOKEN = null;
 
 // ===============================
+// MENU AKTIF
+// ===============================
+function setActiveMenu(menuId){
+
+  document
+    .querySelectorAll(".menu li")
+    .forEach(li => li.classList.remove("active"));
+
+  const menu = document.getElementById(menuId);
+
+  if(menu){
+    menu.classList.add("active");
+  }
+
+}
+
+// ===============================
 // LOGIN & PASSWORD TOGGLE
 // ===============================
 
@@ -102,12 +119,36 @@ function loadAktivitasTerbaru(){
 // ===============================
 
 function showPenduduk(){
+
+  setActiveMenu("menuPenduduk");
+
   google.script.run
     .withSuccessHandler(function(html){
+
       document.getElementById("content").innerHTML = html;
+
       loadPenduduk();
+
     })
     .getPendudukPage();
+
+}
+
+function showDashboard(){
+
+  setActiveMenu("menuDashboard");
+
+  google.script.run
+    .withSuccessHandler(function(html){
+
+      document.getElementById("app").innerHTML = html;
+
+      loadDashboard();
+      loadAktivitasTerbaru();
+
+    })
+    .getDashboard();
+
 }
 
 function loadPenduduk(){
