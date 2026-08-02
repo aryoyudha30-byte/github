@@ -15,7 +15,22 @@ function getPenduduk(token) {
   if (!sh) {
     throw new Error("Sheet Penduduk tidak ditemukan.");
   }
-  return sh.getDataRange().getValues();
+
+  const data = sh.getDataRange().getValues();
+
+  // PENTING: ubah semua objek Date jadi teks biasa sebelum dikirim ke browser.
+  // Tanpa ini, google.script.run bisa gagal mengirim data (hasilnya jadi null
+  // tanpa pesan error) kalau ada sel bertipe Date, seperti kolom Tanggal Lahir.
+  const safeData = data.map(row =>
+    row.map(cell => {
+      if (Object.prototype.toString.call(cell) === "[object Date]") {
+        return Utilities.formatDate(cell, Session.getScriptTimeZone(), "dd/MM/yyyy");
+      }
+      return cell;
+    })
+  );
+
+  return safeData;
 }
 
 // ===============================
