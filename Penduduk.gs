@@ -18,9 +18,8 @@ function getPenduduk(token) {
 
   const data = sh.getDataRange().getValues();
 
-  // PENTING: ubah semua objek Date jadi teks biasa sebelum dikirim ke browser.
-  // Tanpa ini, google.script.run bisa gagal mengirim data (hasilnya jadi null
-  // tanpa pesan error) kalau ada sel bertipe Date, seperti kolom Tanggal Lahir.
+  // Ubah semua objek Date jadi teks biasa sebelum dikirim ke browser,
+  // supaya tidak gagal terkirim (jadi null) gara-gara kolom Tanggal Lahir.
   const safeData = data.map(row =>
     row.map(cell => {
       if (Object.prototype.toString.call(cell) === "[object Date]") {
@@ -31,6 +30,23 @@ function getPenduduk(token) {
   );
 
   return safeData;
+}
+
+// ===============================
+// Validasi data Penduduk (dipakai bersama oleh Tambah & Edit)
+// ===============================
+function validasiDataPenduduk(data) {
+  if (!data.nik || data.nik.toString().trim() == "") {
+    throw new Error("NIK tidak boleh kosong.");
+  }
+  if (!data.nama || data.nama.toString().trim() == "") {
+    throw new Error("Nama tidak boleh kosong.");
+  }
+  const nikBersih = data.nik.toString().trim();
+  if (!/^\d{16}$/.test(nikBersih)) {
+    throw new Error("NIK harus terdiri dari 16 digit angka.");
+  }
+  return nikBersih;
 }
 
 // ===============================
@@ -47,34 +63,15 @@ function tambahPenduduk(token, data) {
     throw new Error("Sheet Penduduk tidak ditemukan.");
   }
 
-  // ==========================
-  // VALIDASI DATA
-  // ==========================
-  if (!data.nik || data.nik.toString().trim() == "") {
-    throw new Error("NIK tidak boleh kosong.");
-  }
-  if (!data.nama || data.nama.toString().trim() == "") {
-    throw new Error("Nama tidak boleh kosong.");
-  }
+  const nikBersih = validasiDataPenduduk(data);
 
-  // NIK Indonesia standarnya 16 digit angka
-  const nikBersih = data.nik.toString().trim();
-  if (!/^\d{16}$/.test(nikBersih)) {
-    throw new Error("NIK harus terdiri dari 16 digit angka.");
-  }
-
-  // ==========================
-  // BACA DATA SEKALI SAJA (untuk cek duplikat NIK & cari ID terbesar)
-  // ==========================
   const values = sh.getDataRange().getValues();
   let maxId = 0;
 
   for (let i = 1; i < values.length; i++) {
-    // Cek NIK duplikat
     if (values[i][1] && values[i][1].toString().trim() === nikBersih) {
       throw new Error("NIK sudah terdaftar.");
     }
-
     const id = Number(values[i][0]);
     if (!isNaN(id) && id > maxId) {
       maxId = id;
@@ -83,14 +80,9 @@ function tambahPenduduk(token, data) {
 
   const newId = maxId + 1;
 
-  // ==========================
-  // DATA YANG DISIMPAN
-  // Urutan HARUS PERSIS sama dengan kolom sheet:
-  // ID, NIK, NAME, JENIS KELAMIN, TEMPAT LAHIR, TANGGAL LAHIR, ALAMAT, RT, RW, NoHP
-  // ==========================
   const rowData = [
     newId,
-    "'" + nikBersih,                       // Ditambah ' agar NIK tersimpan sebagai Text murni
+    "'" + nikBersih,
     data.nama.toString().trim(),
     data.jk || '',
     data.tempat || '',
@@ -98,10 +90,62 @@ function tambahPenduduk(token, data) {
     data.alamat || '',
     data.rt || '',
     data.rw || '',
-    "'" + (data.hp ? data.hp.toString().trim() : '') // Ditambah ' agar No HP yang berawalan 0 tidak hilang
+    "'" + (data.hp ? data.hp.toString().trim() : '')
   ];
 
   sh.appendRow(rowData);
+  return true;
+}
+
+// ===============================
+// Edit Penduduk (BARU)
+// ===============================
+function editPenduduk(token, id, data) {
+  const session = verifySession(token);
+  if (!session) {
+    throw new Error("Sesi login tidak valid atau sudah kadaluarsa.");
+  }
+  const ss = getDatabase();
+  const sh = ss.getSheetByName("Penduduk");
+  if (!sh) {
+    throw new Error("Sheet Penduduk tidak ditemukan.");
+  }
+
+  const nikBersih = validasiDataPenduduk(data);
+  const values = sh.getDataRange().getValues();
+
+  // Cari baris dengan ID yang cocok
+  let targetRow = -1;
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][0].toString() === id.toString()) {
+      targetRow = i + 1; // +1 karena spreadsheet mulai baris 1, index array mulai 0
+      continue;
+    }
+    // Cek NIK tidak bentrok dengan penduduk LAIN (selain baris yang sedang diedit)
+    if (values[i][0].toString() !== id.toString() &&
+        values[i][1] && values[i][1].toString().trim() === nikBersih) {
+      throw new Error("NIK sudah dipakai penduduk lain.");
+    }
+  }
+
+  if (targetRow === -1) {
+    throw new Error("Data dengan ID tersebut tidak ditemukan.");
+  }
+
+  const rowData = [
+    id,
+    "'" + nikBersih,
+    data.nama.toString().trim(),
+    data.jk || '',
+    data.tempat || '',
+    data.tgl || '',
+    data.alamat || '',
+    data.rt || '',
+    data.rw || '',
+    "'" + (data.hp ? data.hp.toString().trim() : '')
+  ];
+
+  sh.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
   return true;
 }
 

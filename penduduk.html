@@ -1,18 +1,16 @@
 <div class="page">
-
   <div class="page-header">
     <h2>👥 Data Penduduk</h2>
     <button onclick="showFormPenduduk()">➕ Tambah</button>
   </div>
 
   <input type="text" id="cariPenduduk"
-         placeholder="Cari Nama atau NIK..."
-         onkeyup="cariPenduduk()">
+    placeholder="Cari Nama atau NIK..."
+    onkeyup="cariPenduduk()">
 
   <table id="tblPenduduk">
     <thead>
       <tr>
-        <th>ID</th>
         <th>NIK</th>
         <th>Nama</th>
         <th>JK</th>
@@ -22,21 +20,21 @@
     </thead>
     <tbody></tbody>
   </table>
-
 </div>
 
 <div id="modalPenduduk" class="modal" style="display:none;">
   <div class="modal-content">
-    <h3>Tambah Penduduk</h3>
+    <h3 id="judulModalPenduduk">Tambah Penduduk</h3>
+
+    <!-- ID disembunyikan: dipakai sistem untuk tahu ini Tambah baru atau Edit data lama -->
+    <input type="hidden" id="pendudukId" value="">
 
     <input id="nik" placeholder="NIK">
     <input id="nama" placeholder="Nama">
-
     <select id="jk">
       <option>Laki-laki</option>
       <option>Perempuan</option>
     </select>
-
     <input id="tempat" placeholder="Tempat Lahir">
     <input id="tgl" type="date">
     <textarea id="alamat" placeholder="Alamat"></textarea>

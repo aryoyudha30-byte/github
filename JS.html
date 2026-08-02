@@ -6,18 +6,16 @@ let SESSION_TOKEN = null;
 // ===============================
 // MENU AKTIF
 // ===============================
-function setActiveMenu(menuId){
 
+function setActiveMenu(menuId){
   document
     .querySelectorAll(".menu li")
     .forEach(li => li.classList.remove("active"));
 
   const menu = document.getElementById(menuId);
-
   if(menu){
     menu.classList.add("active");
   }
-
 }
 
 // ===============================
@@ -43,7 +41,7 @@ function login(){
   google.script.run
     .withSuccessHandler(function(result){
       if (result.success) {
-        SESSION_TOKEN = result.token; // simpan token dari server
+        SESSION_TOKEN = result.token;
 
         google.script.run
           .withSuccessHandler(function(html){
@@ -52,7 +50,6 @@ function login(){
             if (tanggal) {
               tanggal.innerHTML = new Date().toLocaleDateString("id-ID");
             }
-            // Setelah dashboard tampil, muat statistik & aktivitas terbaru
             loadDashboard();
             loadAktivitasTerbaru();
           })
@@ -90,7 +87,7 @@ function loadDashboard(){
     .withFailureHandler(function(err){
       console.error("Gagal memuat dashboard:", err.message);
     })
-    .getDashboardStats(); // NAMA FUNGSI DISESUAIKAN dengan Dashboard.gs
+    .getDashboardStats();
 }
 
 function loadAktivitasTerbaru(){
@@ -119,52 +116,47 @@ function loadAktivitasTerbaru(){
 // ===============================
 
 function showPenduduk(){
-
   setActiveMenu("menuPenduduk");
-
   google.script.run
     .withSuccessHandler(function(html){
-
       document.getElementById("content").innerHTML = html;
-
       loadPenduduk();
-
     })
     .getPendudukPage();
-
 }
 
 function showDashboard(){
-
   setActiveMenu("menuDashboard");
-
   google.script.run
     .withSuccessHandler(function(html){
-
       document.getElementById("app").innerHTML = html;
-
       loadDashboard();
       loadAktivitasTerbaru();
-
     })
     .getDashboard();
-
 }
+
+// Menyimpan sementara data terakhir yang diambil, supaya tombol Edit
+// tidak perlu memanggil server lagi hanya untuk mengisi form
+let DATA_PENDUDUK_TERAKHIR = [];
 
 function loadPenduduk(){
   google.script.run
     .withSuccessHandler(function(data){
+      DATA_PENDUDUK_TERAKHIR = data;
+
       let html = "";
       for (let i = 1; i < data.length; i++) {
+        // data[i]: [ID, NIK, NAME, JK, TEMPAT, TANGGAL, ALAMAT, RT, RW, HP]
         html += `
           <tr>
-            <td>${data[i][0]}</td>
             <td>${data[i][1]}</td>
             <td>${data[i][2]}</td>
             <td>${data[i][3]}</td>
             <td>${data[i][6]}</td>
             <td>
-              <button onclick="hapusPenduduk('${data[i][0]}')">Hapus</button>
+              <button onclick="editPenduduk('${data[i][0]}')">✏️ Edit</button>
+              <button onclick="hapusPenduduk('${data[i][0]}')">🗑️ Hapus</button>
             </td>
           </tr>`;
       }
@@ -177,7 +169,53 @@ function loadPenduduk(){
 }
 
 function showFormPenduduk(){
+  // Pastikan form dalam mode "Tambah" (bukan sisa mode Edit sebelumnya)
+  document.getElementById("judulModalPenduduk").innerText = "Tambah Penduduk";
+  document.getElementById("pendudukId").value = "";
+  document.getElementById("nik").value = "";
+  document.getElementById("nama").value = "";
+  document.getElementById("jk").value = "Laki-laki";
+  document.getElementById("tempat").value = "";
+  document.getElementById("tgl").value = "";
+  document.getElementById("alamat").value = "";
+  document.getElementById("rt").value = "";
+  document.getElementById("rw").value = "";
+  document.getElementById("hp").value = "";
+
   document.getElementById("modalPenduduk").style.display = "flex";
+}
+
+function editPenduduk(id){
+  // Cari data barisnya dari data yang sudah dimuat sebelumnya
+  const row = DATA_PENDUDUK_TERAKHIR.find(r => r[0].toString() === id.toString());
+  if (!row) {
+    alert("Data tidak ditemukan, coba muat ulang halaman.");
+    return;
+  }
+
+  document.getElementById("judulModalPenduduk").innerText = "Edit Penduduk";
+  document.getElementById("pendudukId").value = row[0];
+  document.getElementById("nik").value = row[1];
+  document.getElementById("nama").value = row[2];
+  document.getElementById("jk").value = row[3];
+  document.getElementById("tempat").value = row[4];
+  document.getElementById("tgl").value = formatTanggalUntukInput(row[5]);
+  document.getElementById("alamat").value = row[6];
+  document.getElementById("rt").value = row[7];
+  document.getElementById("rw").value = row[8];
+  document.getElementById("hp").value = row[9];
+
+  document.getElementById("modalPenduduk").style.display = "flex";
+}
+
+// Input type="date" butuh format YYYY-MM-DD, sedangkan data tersimpan dd/MM/yyyy.
+// Fungsi ini mengubah dd/MM/yyyy -> YYYY-MM-DD supaya field tanggal terisi otomatis saat Edit.
+function formatTanggalUntukInput(tgl){
+  if (!tgl) return "";
+  const parts = tgl.toString().split("/");
+  if (parts.length !== 3) return tgl; // sudah dalam format lain, biarkan apa adanya
+  const [dd, mm, yyyy] = parts;
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function tutupModalPenduduk(){
@@ -185,6 +223,8 @@ function tutupModalPenduduk(){
 }
 
 function simpanPenduduk(){
+  const id = document.getElementById("pendudukId").value;
+
   const data = {
     nik: document.getElementById("nik").value,
     nama: document.getElementById("nama").value,
@@ -197,17 +237,33 @@ function simpanPenduduk(){
     hp: document.getElementById("hp").value
   };
 
-  google.script.run
-    .withSuccessHandler(function(){
-      alert("Data berhasil disimpan");
-      tutupModalPenduduk();
-      loadPenduduk();
-      loadDashboard();
-    })
-    .withFailureHandler(function(err){
-      alert("Gagal menyimpan data: " + err.message);
-    })
-    .tambahPenduduk(SESSION_TOKEN, data); // token WAJIB dikirim duluan
+  if (id) {
+    // Mode EDIT: ada ID tersimpan di form -> panggil fungsi update
+    google.script.run
+      .withSuccessHandler(function(){
+        alert("Data berhasil diperbarui");
+        tutupModalPenduduk();
+        loadPenduduk();
+        loadDashboard();
+      })
+      .withFailureHandler(function(err){
+        alert("Gagal memperbarui data: " + err.message);
+      })
+      .editPenduduk(SESSION_TOKEN, id, data);
+  } else {
+    // Mode TAMBAH: tidak ada ID -> data baru
+    google.script.run
+      .withSuccessHandler(function(){
+        alert("Data berhasil disimpan");
+        tutupModalPenduduk();
+        loadPenduduk();
+        loadDashboard();
+      })
+      .withFailureHandler(function(err){
+        alert("Gagal menyimpan data: " + err.message);
+      })
+      .tambahPenduduk(SESSION_TOKEN, data);
+  }
 }
 
 function hapusPenduduk(id){
@@ -220,7 +276,7 @@ function hapusPenduduk(id){
       .withFailureHandler(function(err){
         alert("Gagal menghapus data: " + err.message);
       })
-      .hapusPenduduk(SESSION_TOKEN, id); // token WAJIB dikirim duluan
+      .hapusPenduduk(SESSION_TOKEN, id);
   }
 }
 
