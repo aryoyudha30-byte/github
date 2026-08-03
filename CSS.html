@@ -421,112 +421,250 @@ td:last-child{
 
 }
 
-<style>
-  /* ==========================================
-     STYLING TABEL DESA (KK & PENDUDUK)
-     ========================================== */
-  
-  /* Container Tabel */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-    background-color: #ffffff;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-  }
+  /* =========================================================
+   UNIVERSAL TABLE STYLE
+   Berlaku untuk semua halaman data
+========================================================= */
 
-  /* Header Tabel (Warna Biru Modern) */
-  table thead tr {
-    background-color: #2563eb; /* Biru Admin */
-    color: #ffffff;
-    text-align: left;
-    font-weight: 600;
-  }
+.page{
+    width:100%;
+    background:#fff;
+    border-radius:15px;
+    padding:25px;
+    box-shadow:0 5px 15px rgba(0,0,0,.08);
+}
 
-  table th, table td {
-    padding: 12px 16px;
-    vertical-align: middle;
-    font-size: 14px;
-    border-bottom: 1px solid #e5e7eb;
-  }
+.page-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
 
-  /* Baris Selang-Seling (Zebra Striping) & Hover Effect */
-  table tbody tr:nth-of-type(even) {
-    background-color: #f9fafb;
-  }
+.page-header h2{
+    color:#233d91;
+    font-size:28px;
+    font-weight:700;
+}
 
-  table tbody tr:hover {
-    background-color: #f3f4f6;
-  }
+.page-header button{
+    width:auto;
+    padding:12px 24px;
+    border-radius:10px;
+    font-weight:600;
+}
 
-  /* Penataan Khusus Kolom Aksi */
-  table th:last-child, 
-  table td:last-child {
-    text-align: center;
-    width: 140px; /* Mengunci lebar kolom Aksi agar tidak melar */
-  }
+/* =========================
+SEARCH
+========================= */
 
-  /* Pembungkus Tombol Aksi (Jajar Kesamping / Horizontal) */
-  .action-btn-group {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-    align-items: center;
-  }
+#cariPenduduk,
+#cariKK,
+#cariSuratMasuk,
+#cariSuratKeluar,
+#cariPengaduan{
 
-  /* Tombol Edit */
-  .btn-edit {
-    background-color: #eab308; /* Kuning/Amber */
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: background 0.2s;
-  }
+    width:100%;
+    height:45px;
 
-  .btn-edit:hover {
-    background-color: #ca8a04;
-  }
+    margin-bottom:20px;
 
-  /* Tombol Hapus */
-  .btn-hapus {
-    background-color: #ef4444; /* Merah */
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: background 0.2s;
-  }
+}
 
-  .btn-hapus:hover {
-    background-color: #dc2626;
-  }
+/* =========================
+TABLE
+========================= */
 
-  /* Styling Form Search Input */
-  input[type="text"]#cariKK, 
-  input[type="text"]#cariPenduduk {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    box-sizing: border-box;
-    outline: none;
-    transition: border-color 0.2s;
-  }
+table{
 
-  input[type="text"]#cariKK:focus, 
-  input[type="text"]#cariPenduduk:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  }
+    width:100%;
+    border-collapse:collapse;
+
+    background:#fff;
+
+}
+
+table thead{
+
+    background:#2563eb;
+    color:white;
+
+}
+
+table th{
+
+    padding:14px;
+    font-size:15px;
+    text-align:left;
+
+}
+
+table td{
+
+    padding:13px;
+    border-bottom:1px solid #ececec;
+
+}
+
+table tbody tr:nth-child(even){
+
+    background:#fafafa;
+
+}
+
+table tbody tr:hover{
+
+    background:#edf4ff;
+
+}
+
+/* =========================
+ACTION BUTTON
+========================= */
+
+.action-group{
+
+    display:flex;
+    gap:8px;
+    justify-content:center;
+
+}
+
+.btn-edit{
+
+    width:auto;
+
+    background:#f59e0b;
+
+    padding:8px 16px;
+
+    border-radius:8px;
+
+}
+
+.btn-edit:hover{
+
+    background:#d97706;
+
+}
+
+.btn-hapus{
+
+    width:auto;
+
+    background:#ef4444;
+
+    padding:8px 16px;
+
+    border-radius:8px;
+
+}
+
+.btn-hapus:hover{
+
+    background:#dc2626;
+
+}
+
+.btn-detail{
+
+    width:auto;
+
+    background:#10b981;
+
+    padding:8px 16px;
+
+    border-radius:8px;
+
+}
+
+.btn-detail:hover{
+
+    background:#059669;
+
+}
+
+/* =========================
+MODAL FORM
+========================= */
+
+.modal-content input,
+.modal-content select{
+
+    width:100%;
+    height:45px;
+
+    padding:0 15px;
+
+    margin-bottom:15px;
+
+}
+
+.modal-content input:focus,
+.modal-content select:focus{
+
+    border:1px solid #2563eb;
+    box-shadow:0 0 5px rgba(37,99,235,.3);
+
+}
+
+/* =========================
+RESPONSIVE
+========================= */
+
+@media(max-width:900px){
+
+.sidebar{
+
+    width:220px;
+
+}
+
+.content{
+
+    margin-left:220px;
+
+}
+
+}
+
+@media(max-width:700px){
+
+.sidebar{
+
+    width:100%;
+    position:relative;
+    height:auto;
+
+}
+
+.content{
+
+    margin-left:0;
+    width:100%;
+
+}
+
+.cards{
+
+    grid-template-columns:1fr;
+
+}
+
+.page-header{
+
+    flex-direction:column;
+    align-items:flex-start;
+    gap:15px;
+
+}
+
+.modal-content{
+
+    width:95%;
+
+}
+
+}
   
 </style>
