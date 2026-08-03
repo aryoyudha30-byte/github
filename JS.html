@@ -435,4 +435,20 @@ function cariKK(){
   });
 }
 
+// Contoh render baris tabel di JS.html
+tr.innerHTML = `
+  <td>${row[1] || ''}</td>
+  <td>${row[2] || ''}</td>
+  <td>${row[3] || ''}</td>
+  <td>${row[4] || ''}</td>
+  <td>${row[5] || ''}</td>
+  <td>${row[6] || ''}</td>
+  <td>
+    <div class="action-btn-group">
+      <button class="btn-edit" onclick="editKK('${row[0]}')">✏️ Edit</button>
+      <button class="btn-hapus" onclick="hapusKK('${row[0]}')">🗑️ Hapus</button>
+    </div>
+  </td>
+`;
+
 </script>
