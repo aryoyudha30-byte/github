@@ -291,4 +291,148 @@ function cariPenduduk(){
   });
 }
 
+ // ===============================
+// KK (tambahkan ke JS.html, di bawah fungsi-fungsi Penduduk)
+// ===============================
+
+let DATA_KK_TERAKHIR = [];
+
+function showKK(){
+  setActiveMenu("menuKK");
+  google.script.run
+    .withSuccessHandler(function(html){
+      document.getElementById("content").innerHTML = html;
+      loadKK();
+    })
+    .getKKPage();
+}
+
+function loadKK(){
+  google.script.run
+    .withSuccessHandler(function(data){
+      DATA_KK_TERAKHIR = data;
+
+      let html = "";
+      for (let i = 1; i < data.length; i++) {
+        // data[i]: [ID, NoKK, KepalaKeluarga, Alamat, RT, RW, JumlahAnggota]
+        html += `
+          <tr>
+            <td>${data[i][1]}</td>
+            <td>${data[i][2]}</td>
+            <td>${data[i][3]}</td>
+            <td>${data[i][6]}</td>
+            <td>
+              <button onclick="editKKForm('${data[i][0]}')">✏️ Edit</button>
+              <button onclick="hapusKKData('${data[i][0]}')">🗑️ Hapus</button>
+            </td>
+          </tr>`;
+      }
+      document.querySelector("#tblKK tbody").innerHTML = html;
+    })
+    .withFailureHandler(function(err){
+      alert("Gagal memuat data KK: " + err.message);
+    })
+    .getKK(SESSION_TOKEN);
+}
+
+function showFormKK(){
+  document.getElementById("judulModalKK").innerText = "Tambah KK";
+  document.getElementById("kkId").value = "";
+  document.getElementById("noKK").value = "";
+  document.getElementById("kepalaKeluarga").value = "";
+  document.getElementById("alamatKK").value = "";
+  document.getElementById("rtKK").value = "";
+  document.getElementById("rwKK").value = "";
+  document.getElementById("jumlahAnggota").value = "";
+
+  document.getElementById("modalKK").style.display = "flex";
+}
+
+function editKKForm(id){
+  const row = DATA_KK_TERAKHIR.find(r => r[0].toString() === id.toString());
+  if (!row) {
+    alert("Data tidak ditemukan, coba muat ulang halaman.");
+    return;
+  }
+
+  document.getElementById("judulModalKK").innerText = "Edit KK";
+  document.getElementById("kkId").value = row[0];
+  document.getElementById("noKK").value = row[1];
+  document.getElementById("kepalaKeluarga").value = row[2];
+  document.getElementById("alamatKK").value = row[3];
+  document.getElementById("rtKK").value = row[4];
+  document.getElementById("rwKK").value = row[5];
+  document.getElementById("jumlahAnggota").value = row[6];
+
+  document.getElementById("modalKK").style.display = "flex";
+}
+
+function tutupModalKK(){
+  document.getElementById("modalKK").style.display = "none";
+}
+
+function simpanKK(){
+  const id = document.getElementById("kkId").value;
+
+  const data = {
+    noKK: document.getElementById("noKK").value,
+    kepalaKeluarga: document.getElementById("kepalaKeluarga").value,
+    alamat: document.getElementById("alamatKK").value,
+    rt: document.getElementById("rtKK").value,
+    rw: document.getElementById("rwKK").value,
+    jumlahAnggota: document.getElementById("jumlahAnggota").value
+  };
+
+  if (id) {
+    google.script.run
+      .withSuccessHandler(function(){
+        alert("Data KK berhasil diperbarui");
+        tutupModalKK();
+        loadKK();
+        loadDashboard();
+      })
+      .withFailureHandler(function(err){
+        alert("Gagal memperbarui data: " + err.message);
+      })
+      .editKK(SESSION_TOKEN, id, data);
+  } else {
+    google.script.run
+      .withSuccessHandler(function(){
+        alert("Data KK berhasil disimpan");
+        tutupModalKK();
+        loadKK();
+        loadDashboard();
+      })
+      .withFailureHandler(function(err){
+        alert("Gagal menyimpan data: " + err.message);
+      })
+      .tambahKK(SESSION_TOKEN, data);
+  }
+}
+
+function hapusKKData(id){
+  if(confirm("Yakin ingin menghapus data KK ini?")){
+    google.script.run
+      .withSuccessHandler(function(){
+        loadKK();
+        loadDashboard();
+      })
+      .withFailureHandler(function(err){
+        alert("Gagal menghapus data: " + err.message);
+      })
+      .hapusKK(SESSION_TOKEN, id);
+  }
+}
+
+function cariKK(){
+  const keyword = document.getElementById("cariKK").value.toLowerCase();
+  const rows = document.querySelectorAll("#tblKK tbody tr");
+
+  rows.forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(keyword)
+      ? ""
+      : "none";
+  });
+}
+
 </script>

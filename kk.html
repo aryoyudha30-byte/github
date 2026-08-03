@@ -1,9 +1,107 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-  </head>
-  <body>
-    
-  </body>
-</html>
+<div class="page">
+
+    <div class="page-header">
+        <h2>🏠 Data Kartu Keluarga</h2>
+
+        <button onclick="showFormKK()">
+            ➕ Tambah
+        </button>
+
+    </div>
+
+    <input
+        type="text"
+        id="cariKK"
+        placeholder="Cari Nomor KK atau Kepala Keluarga..."
+        onkeyup="cariKK()">
+
+    <table id="tblKK">
+
+        <thead>
+
+            <tr>
+
+                <th>No KK</th>
+                <th>Kepala Keluarga</th>
+                <th>Alamat</th>
+                <th>RT</th>
+                <th>RW</th>
+                <th>Jumlah</th>
+                <th>Aksi</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+        </tbody>
+
+    </table>
+
+</div>
+
+<div
+id="modalKK"
+class="modal"
+style="display:none;">
+
+<div class="modal-content">
+
+<h3 id="judulModalKK">
+
+Tambah Data KK
+
+</h3>
+
+<input
+type="hidden"
+id="kkId">
+
+<input
+id="noKK"
+maxlength="16"
+placeholder="Nomor KK">
+
+<input
+id="kepalaKeluarga"
+placeholder="Nama Kepala Keluarga">
+
+<input
+id="alamatKK"
+placeholder="Alamat Lengkap">
+
+<input
+id="rtKK"
+type="number"
+placeholder="RT">
+
+<input
+id="rwKK"
+type="number"
+placeholder="RW">
+
+<input
+id="jumlahAnggota"
+type="number"
+placeholder="Jumlah Anggota">
+
+<div class="modal-actions">
+
+<button onclick="simpanKK()">
+
+💾 Simpan
+
+</button>
+
+<button onclick="tutupModalKK()">
+
+❌ Batal
+
+</button>
+
+</div>
+
+</div>
+
+</div>
