@@ -1,9 +1,198 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-  </head>
-  <body>
-    
-  </body>
-</html>
+<!-- ======================================================
+     SURATKELUAR.HTML
+     ====================================================== -->
+
+<div class="page">
+
+    <div class="page-header">
+
+        <h2>📤 Surat Keluar</h2>
+
+        <button onclick="showFormSuratKeluar()">
+            ➕ Tambah Surat
+        </button>
+
+    </div>
+
+    <!-- =========================
+         SEARCH
+    ========================== -->
+
+    <input
+        type="text"
+        id="cariSuratKeluar"
+        placeholder="Cari Nomor Surat, Tujuan atau Perihal..."
+        onkeyup="cariSuratKeluar()">
+
+    <!-- =========================
+         TABEL
+    ========================== -->
+
+    <table id="tblSuratKeluar">
+
+        <thead>
+
+            <tr>
+
+                <th>No Agenda</th>
+
+                <th>Nomor Surat</th>
+
+                <th>Tanggal</th>
+
+                <th>Tujuan</th>
+
+                <th>Perihal</th>
+
+                <th>Status</th>
+
+                <th>Aksi</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+        </tbody>
+
+    </table>
+
+</div>
+
+
+
+
+
+<!-- ======================================================
+     MODAL
+     ====================================================== -->
+
+<div
+    id="modalSuratKeluar"
+    class="modal"
+    style="display:none;">
+
+    <div class="modal-content">
+
+        <h3 id="judulModalSuratKeluar">
+
+            Tambah Surat Keluar
+
+        </h3>
+
+
+        <input
+            type="hidden"
+            id="suratKeluarId">
+
+
+        <!-- Nomor Surat -->
+
+        <input
+            id="nomorSuratKeluar"
+            maxlength="100"
+            placeholder="Nomor Surat">
+
+
+        <!-- Tanggal -->
+
+        <input
+            type="date"
+            id="tanggalSuratKeluar">
+
+
+        <!-- Tujuan -->
+
+        <input
+            id="tujuanSurat"
+            maxlength="200"
+            placeholder="Tujuan Surat">
+
+
+        <!-- Perihal -->
+
+        <input
+            id="perihalSuratKeluar"
+            maxlength="300"
+            placeholder="Perihal">
+
+
+        <!-- Penandatangan -->
+
+        <input
+            id="penandatangan"
+            maxlength="100"
+            placeholder="Penandatangan">
+
+
+        <!-- Keterangan -->
+
+        <input
+            id="keteranganSuratKeluar"
+            maxlength="300"
+            placeholder="Keterangan">
+
+
+        <!-- Status -->
+
+        <select id="statusSuratKeluar">
+
+            <option value="Draft">
+
+                Draft
+
+            </option>
+
+            <option value="Diproses">
+
+                Diproses
+
+            </option>
+
+            <option value="Dikirim">
+
+                Dikirim
+
+            </option>
+
+            <option value="Diterima">
+
+                Diterima
+
+            </option>
+
+            <option value="Diarsipkan">
+
+                Diarsipkan
+
+            </option>
+
+        </select>
+
+
+
+        <!-- Tombol -->
+
+        <div class="modal-actions">
+
+            <button
+                id="btnSimpanSuratKeluar"
+                onclick="simpanSuratKeluar(this)">
+
+                💾 Simpan
+
+            </button>
+
+            <button
+                onclick="tutupModalSuratKeluar()">
+
+                ❌ Batal
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
