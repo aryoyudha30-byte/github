@@ -1,30 +1,96 @@
 <script>
 
-// Menyimpan token sesi login selama halaman dibuka (hilang otomatis kalau di-refresh -> harus login ulang)
-let SESSION_TOKEN = null;
+// ==========================================
+// HELPER & VARIABEL GLOBAL
+// ==========================================
+const $ = id => document.getElementById(id);
+let SESSION_TOKEN = localStorage.getItem('SESSION_TOKEN') || null;
 
-// ===============================
-// MENU AKTIF
-// ===============================
+function saveSession(token){
+  SESSION_TOKEN = token;
+  localStorage.setItem('SESSION_TOKEN', token);
+}
 
-function setActiveMenu(menuId){
-  document
-    .querySelectorAll(".menu li")
-    .forEach(li => li.classList.remove("active"));
+function clearSession(){
+  SESSION_TOKEN = null;
+  localStorage.removeItem('SESSION_TOKEN');
+}
 
-  const menu = document.getElementById(menuId);
-  if(menu){
-    menu.classList.add("active");
+function getToken(){
+  if (!SESSION_TOKEN) {
+    SESSION_TOKEN = localStorage.getItem('SESSION_TOKEN');
+  }
+  return SESSION_TOKEN;
+}
+
+// Notifikasi Toast (menggantikan alert() bawaan browser)
+function showToast(message, type = "success") {
+  let toast = $('customToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'customToast';
+    toast.style.cssText = `
+      position: fixed; bottom: 20px; right: 20px; z-index: 99999;
+      padding: 12px 20px; border-radius: 8px; color: #fff; font-size: 14px;
+      font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.3s ease; opacity: 0; transform: translateY(20px);
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.style.backgroundColor = type === "success" ? "#10b981" : "#ef4444";
+  toast.innerText = message;
+  toast.style.opacity = "1";
+  toast.style.transform = "translateY(0)";
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(20px)";
+  }, 3500);
+}
+
+// Sanitasi: hanya izinkan angka pada sebuah input, maksimal panjang tertentu
+function forceNumericInput(element, maxLength) {
+  if (!element) return;
+  if (element._numericBound) return; // hindari pasang listener dobel
+  element._numericBound = true;
+  element.addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '');
+    if (maxLength && this.value.length > maxLength) {
+      this.value = this.value.slice(0, maxLength);
+    }
+  });
+}
+
+// Anti-double-click + indikator loading di tombol
+function toggleButtonLoading(btnElement, isLoading, defaultText) {
+  if (!btnElement) return;
+  if (isLoading) {
+    btnElement.disabled = true;
+    btnElement.setAttribute('data-original-text', btnElement.innerHTML);
+    btnElement.innerHTML = "⏳ Memproses...";
+    btnElement.style.opacity = "0.7";
+    btnElement.style.cursor = "not-allowed";
+  } else {
+    btnElement.disabled = false;
+    btnElement.innerHTML = btnElement.getAttribute('data-original-text') || defaultText;
+    btnElement.style.opacity = "1";
+    btnElement.style.cursor = "pointer";
   }
 }
 
-// ===============================
+function setActiveMenu(menuId){
+  document.querySelectorAll(".menu li").forEach(li => li.classList.remove("active"));
+  const menu = $(menuId);
+  if (menu) menu.classList.add("active");
+}
+
+// ==========================================
 // LOGIN & PASSWORD TOGGLE
-// ===============================
+// ==========================================
 
 function togglePasswordVisibility(){
-  const pwd = document.getElementById("password");
-  const icon = document.getElementById("togglePassword");
+  const pwd = $("password");
+  const icon = $("togglePassword");
   if (pwd.type === "password") {
     pwd.type = "text";
     icon.textContent = "🙈";
@@ -35,54 +101,52 @@ function togglePasswordVisibility(){
 }
 
 function login(){
-  let username = document.getElementById("username").value;
-  let password = document.getElementById("password").value;
+  const username = $("username").value;
+  const password = $("password").value;
 
   google.script.run
     .withSuccessHandler(function(result){
       if (result.success) {
-        SESSION_TOKEN = result.token;
+        saveSession(result.token);
 
         google.script.run
           .withSuccessHandler(function(html){
-            document.getElementById("app").innerHTML = html;
-            const tanggal = document.getElementById("tanggal");
-            if (tanggal) {
-              tanggal.innerHTML = new Date().toLocaleDateString("id-ID");
-            }
+            $("app").innerHTML = html;
+            const tanggal = $("tanggal");
+            if (tanggal) tanggal.innerHTML = new Date().toLocaleDateString("id-ID");
             loadDashboard();
             loadAktivitasTerbaru();
           })
           .getDashboard();
 
       } else {
-        document.getElementById("pesan").innerHTML = result.message;
+        $("pesan").innerHTML = result.message;
       }
     })
     .withFailureHandler(function(err){
-      document.getElementById("pesan").innerHTML = "Terjadi kesalahan: " + err.message;
+      $("pesan").innerHTML = "Terjadi kesalahan: " + err.message;
     })
     .checkLogin(username, password);
 }
 
 function logout(){
-  SESSION_TOKEN = null;
+  clearSession();
   location.reload();
 }
 
-// ===============================
+// ==========================================
 // DASHBOARD
-// ===============================
+// ==========================================
 
 function loadDashboard(){
   google.script.run
     .withSuccessHandler(function(data){
-      document.getElementById("totalPenduduk").innerText = data.penduduk;
-      document.getElementById("totalKK").innerText = data.kk;
-      document.getElementById("totalSuratMasuk").innerText = data.suratMasuk;
-      document.getElementById("totalSuratKeluar").innerText = data.suratKeluar;
-      document.getElementById("totalPengaduan").innerText = data.pengaduan;
-      document.getElementById("totalAgenda").innerText = data.agenda;
+      $("totalPenduduk").innerText = data.penduduk;
+      $("totalKK").innerText = data.kk;
+      $("totalSuratMasuk").innerText = data.suratMasuk;
+      $("totalSuratKeluar").innerText = data.suratKeluar;
+      $("totalPengaduan").innerText = data.pengaduan;
+      $("totalAgenda").innerText = data.agenda;
     })
     .withFailureHandler(function(err){
       console.error("Gagal memuat dashboard:", err.message);
@@ -91,16 +155,17 @@ function loadDashboard(){
 }
 
 function loadAktivitasTerbaru(){
+  const token = getToken();
+  if (!token) return;
+
   google.script.run
     .withSuccessHandler(function(list){
-      const ul = document.getElementById("aktivitasTerbaru");
+      const ul = $("aktivitasTerbaru");
       if (!ul) return;
-
       if (!list || list.length === 0) {
         ul.innerHTML = "<li>Belum ada aktivitas.</li>";
         return;
       }
-
       ul.innerHTML = list.map(item =>
         `<li>${item.username} - ${item.aksi} (${new Date(item.waktu).toLocaleString("id-ID")})</li>`
       ).join("");
@@ -108,192 +173,208 @@ function loadAktivitasTerbaru(){
     .withFailureHandler(function(err){
       console.error("Gagal memuat aktivitas:", err.message);
     })
-    .getAktivitasTerbaru(SESSION_TOKEN);
+    .getAktivitasTerbaru(token);
 }
 
-// ===============================
-// PENDUDUK
-// ===============================
+// ==========================================
+// MODUL PENDUDUK
+// ==========================================
+
+let DATA_PENDUDUK_TERAKHIR = [];
 
 function showPenduduk(){
   setActiveMenu("menuPenduduk");
   google.script.run
     .withSuccessHandler(function(html){
-      document.getElementById("content").innerHTML = html;
+      $("content").innerHTML = html;
+      // Pasang sanitasi SETELAH form ter-render, bukan saat DOMContentLoaded
+      forceNumericInput($('nik'), 16);
+      forceNumericInput($('rt'), 3);
+      forceNumericInput($('rw'), 3);
+      forceNumericInput($('hp'), 13);
       loadPenduduk();
     })
     .getPendudukPage();
 }
 
-function showDashboard(){
-  setActiveMenu("menuDashboard");
-  google.script.run
-    .withSuccessHandler(function(html){
-      document.getElementById("app").innerHTML = html;
-      loadDashboard();
-      loadAktivitasTerbaru();
-    })
-    .getDashboard();
-}
-
-// Menyimpan sementara data terakhir yang diambil, supaya tombol Edit
-// tidak perlu memanggil server lagi hanya untuk mengisi form
-let DATA_PENDUDUK_TERAKHIR = [];
-
 function loadPenduduk(){
-  google.script.run
-    .withSuccessHandler(function(data){
-      DATA_PENDUDUK_TERAKHIR = data;
-
-      let html = "";
-      for (let i = 1; i < data.length; i++) {
-        // data[i]: [ID, NIK, NAME, JK, TEMPAT, TANGGAL, ALAMAT, RT, RW, HP]
-        html += `
-          <tr>
-            <td>${data[i][1]}</td>
-            <td>${data[i][2]}</td>
-            <td>${data[i][3]}</td>
-            <td>${data[i][6]}</td>
-            <td>
-              <button onclick="editPenduduk('${data[i][0]}')">✏️ Edit</button>
-              <button onclick="hapusPenduduk('${data[i][0]}')">🗑️ Hapus</button>
-            </td>
-          </tr>`;
-      }
-      document.querySelector("#tblPenduduk tbody").innerHTML = html;
-    })
-    .withFailureHandler(function(err){
-      alert("Gagal memuat data Penduduk: " + err.message);
-    })
-    .getPenduduk(SESSION_TOKEN);
-}
-
-function showFormPenduduk(){
-  // Pastikan form dalam mode "Tambah" (bukan sisa mode Edit sebelumnya)
-  document.getElementById("judulModalPenduduk").innerText = "Tambah Penduduk";
-  document.getElementById("pendudukId").value = "";
-  document.getElementById("nik").value = "";
-  document.getElementById("nama").value = "";
-  document.getElementById("jk").value = "Laki-laki";
-  document.getElementById("tempat").value = "";
-  document.getElementById("tgl").value = "";
-  document.getElementById("alamat").value = "";
-  document.getElementById("rt").value = "";
-  document.getElementById("rw").value = "";
-  document.getElementById("hp").value = "";
-
-  document.getElementById("modalPenduduk").style.display = "flex";
-}
-
-function editPenduduk(id){
-  // Cari data barisnya dari data yang sudah dimuat sebelumnya
-  const row = DATA_PENDUDUK_TERAKHIR.find(r => r[0].toString() === id.toString());
-  if (!row) {
-    alert("Data tidak ditemukan, coba muat ulang halaman.");
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis. Silakan login kembali.", "error");
+    logout();
     return;
   }
 
-  document.getElementById("judulModalPenduduk").innerText = "Edit Penduduk";
-  document.getElementById("pendudukId").value = row[0];
-  document.getElementById("nik").value = row[1];
-  document.getElementById("nama").value = row[2];
-  document.getElementById("jk").value = row[3];
-  document.getElementById("tempat").value = row[4];
-  document.getElementById("tgl").value = formatTanggalUntukInput(row[5]);
-  document.getElementById("alamat").value = row[6];
-  document.getElementById("rt").value = row[7];
-  document.getElementById("rw").value = row[8];
-  document.getElementById("hp").value = row[9];
+  google.script.run
+    .withSuccessHandler(function(data){
+      DATA_PENDUDUK_TERAKHIR = data;
+      const tbody = document.querySelector("#tblPenduduk tbody");
+      if (!tbody) return;
 
-  document.getElementById("modalPenduduk").style.display = "flex";
+      if (!data || data.length <= 1) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Belum ada data penduduk.</td></tr>';
+        return;
+      }
+
+      let html = "";
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        html += `
+          <tr>
+            <td>${row[1] || ''}</td>
+            <td>${row[2] || ''}</td>
+            <td>${row[3] || ''}</td>
+            <td>${row[6] || ''}</td>
+            <td class="aksi">
+              <button class="btn-edit" onclick="editPenduduk('${row[0]}')">✏️ Edit</button>
+              <button class="btn-hapus" onclick="hapusPenduduk('${row[0]}')">🗑️ Hapus</button>
+            </td>
+          </tr>`;
+      }
+      tbody.innerHTML = html;
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal memuat data Penduduk: " + err.message, "error");
+    })
+    .getPenduduk(token);
 }
 
-// Input type="date" butuh format YYYY-MM-DD, sedangkan data tersimpan dd/MM/yyyy.
-// Fungsi ini mengubah dd/MM/yyyy -> YYYY-MM-DD supaya field tanggal terisi otomatis saat Edit.
+function showFormPenduduk(){
+  $("judulModalPenduduk").innerText = "Tambah Penduduk";
+  $("pendudukId").value = "";
+  $("nik").value = "";
+  $("nama").value = "";
+  $("jk").value = "Laki-laki";
+  $("tempat").value = "";
+  $("tgl").value = "";
+  $("alamat").value = "";
+  $("rt").value = "";
+  $("rw").value = "";
+  $("hp").value = "";
+  $("modalPenduduk").style.display = "flex";
+}
+
+function editPenduduk(id){
+  const row = DATA_PENDUDUK_TERAKHIR.find(r => r[0].toString() === id.toString());
+  if (!row) {
+    showToast("Data tidak ditemukan, coba muat ulang halaman.", "error");
+    return;
+  }
+  $("judulModalPenduduk").innerText = "Edit Penduduk";
+  $("pendudukId").value = row[0];
+  $("nik").value = row[1];
+  $("nama").value = row[2];
+  $("jk").value = row[3];
+  $("tempat").value = row[4];
+  $("tgl").value = formatTanggalUntukInput(row[5]);
+  $("alamat").value = row[6];
+  $("rt").value = row[7];
+  $("rw").value = row[8];
+  $("hp").value = row[9];
+  $("modalPenduduk").style.display = "flex";
+}
+
 function formatTanggalUntukInput(tgl){
   if (!tgl) return "";
   const parts = tgl.toString().split("/");
-  if (parts.length !== 3) return tgl; // sudah dalam format lain, biarkan apa adanya
+  if (parts.length !== 3) return tgl;
   const [dd, mm, yyyy] = parts;
   return `${yyyy}-${mm}-${dd}`;
 }
 
 function tutupModalPenduduk(){
-  document.getElementById("modalPenduduk").style.display = "none";
+  $("modalPenduduk").style.display = "none";
 }
 
-function simpanPenduduk(){
-  const id = document.getElementById("pendudukId").value;
+function simpanPenduduk(btn){
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis. Silakan login kembali.", "error");
+    logout();
+    return;
+  }
 
+  const id = $("pendudukId").value;
   const data = {
-    nik: document.getElementById("nik").value,
-    nama: document.getElementById("nama").value,
-    jk: document.getElementById("jk").value,
-    tempat: document.getElementById("tempat").value,
-    tgl: document.getElementById("tgl").value,
-    alamat: document.getElementById("alamat").value,
-    rt: document.getElementById("rt").value,
-    rw: document.getElementById("rw").value,
-    hp: document.getElementById("hp").value
+    nik: $("nik").value.trim(),
+    nama: $("nama").value.trim(),
+    jk: $("jk").value,
+    tempat: $("tempat").value.trim(),
+    tgl: $("tgl").value,
+    alamat: $("alamat").value.trim(),
+    rt: $("rt").value.trim(),
+    rw: $("rw").value.trim(),
+    hp: $("hp").value.trim()
   };
 
+  if (!data.nik || data.nik.length !== 16) {
+    showToast("NIK wajib diisi tepat 16 digit angka!", "error");
+    return;
+  }
+  if (!data.nama) {
+    showToast("Nama wajib diisi!", "error");
+    return;
+  }
+
+  toggleButtonLoading(btn, true);
+
   if (id) {
-    // Mode EDIT: ada ID tersimpan di form -> panggil fungsi update
     google.script.run
       .withSuccessHandler(function(){
-        alert("Data berhasil diperbarui");
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Data berhasil diperbarui!", "success");
         tutupModalPenduduk();
         loadPenduduk();
         loadDashboard();
       })
       .withFailureHandler(function(err){
-        alert("Gagal memperbarui data: " + err.message);
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal memperbarui: " + err.message, "error");
       })
-      .editPenduduk(SESSION_TOKEN, id, data);
+      .editPenduduk(token, id, data);
   } else {
-    // Mode TAMBAH: tidak ada ID -> data baru
     google.script.run
       .withSuccessHandler(function(){
-        alert("Data berhasil disimpan");
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Data berhasil disimpan!", "success");
         tutupModalPenduduk();
         loadPenduduk();
         loadDashboard();
       })
       .withFailureHandler(function(err){
-        alert("Gagal menyimpan data: " + err.message);
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal menyimpan: " + err.message, "error");
       })
-      .tambahPenduduk(SESSION_TOKEN, data);
+      .tambahPenduduk(token, data);
   }
 }
 
 function hapusPenduduk(id){
-  if(confirm("Yakin ingin menghapus data ini?")){
-    google.script.run
-      .withSuccessHandler(function(){
-        loadPenduduk();
-        loadDashboard();
-      })
-      .withFailureHandler(function(err){
-        alert("Gagal menghapus data: " + err.message);
-      })
-      .hapusPenduduk(SESSION_TOKEN, id);
-  }
+  if (!confirm("Yakin ingin menghapus data ini?")) return;
+  const token = getToken();
+
+  google.script.run
+    .withSuccessHandler(function(){
+      showToast("Data berhasil dihapus.", "success");
+      loadPenduduk();
+      loadDashboard();
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal menghapus: " + err.message, "error");
+    })
+    .hapusPenduduk(token, id);
 }
 
 function cariPenduduk(){
-  const keyword = document.getElementById("cariPenduduk").value.toLowerCase();
-  const rows = document.querySelectorAll("#tblPenduduk tbody tr");
-
-  rows.forEach(row => {
-    row.style.display = row.innerText.toLowerCase().includes(keyword)
-      ? ""
-      : "none";
+  const keyword = $("cariPenduduk").value.toLowerCase();
+  document.querySelectorAll("#tblPenduduk tbody tr").forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
   });
 }
 
- // ===============================
-// KK (tambahkan ke JS.html, di bawah fungsi-fungsi Penduduk)
-// ===============================
+// ==========================================
+// MODUL KARTU KELUARGA (KK)
+// ==========================================
 
 let DATA_KK_TERAKHIR = [];
 
@@ -301,299 +382,401 @@ function showKK(){
   setActiveMenu("menuKK");
   google.script.run
     .withSuccessHandler(function(html){
-      document.getElementById("content").innerHTML = html;
+      $("content").innerHTML = html;
+      forceNumericInput($('noKK'), 16);
+      forceNumericInput($('rtKK'), 3);
+      forceNumericInput($('rwKK'), 3);
       loadKK();
     })
     .getKKPage();
 }
 
 function loadKK(){
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis. Silakan login kembali.", "error");
+    logout();
+    return;
+  }
+
   google.script.run
     .withSuccessHandler(function(data){
       DATA_KK_TERAKHIR = data;
+      const tbody = document.querySelector("#tblKK tbody");
+      if (!tbody) return;
+
+      if (!data || data.length <= 1) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Belum ada data KK.</td></tr>';
+        return;
+      }
 
       let html = "";
       for (let i = 1; i < data.length; i++) {
-        // data[i]: [ID, NoKK, KepalaKeluarga, Alamat, RT, RW, JumlahAnggota]
+        const row = data[i];
         html += `
           <tr>
-            <td>${data[i][1]}</td>
-            <td>${data[i][2]}</td>
-            <td>${data[i][3]}</td>
-            <td>${data[i][6]}</td>
-            <td>
-              <button onclick="editKKForm('${data[i][0]}')">✏️ Edit</button>
-              <button onclick="hapusKKData('${data[i][0]}')">🗑️ Hapus</button>
+            <td>${row[1] || ''}</td>
+            <td>${row[2] || ''}</td>
+            <td>${row[3] || ''}</td>
+            <td>${row[4] || ''}</td>
+            <td>${row[5] || ''}</td>
+            <td>${row[6] || '0'} Jiwa</td>
+            <td class="aksi">
+              <button class="btn-edit" onclick="editKKForm('${row[0]}')">✏️ Edit</button>
+              <button class="btn-hapus" onclick="hapusKKData('${row[0]}')">🗑️ Hapus</button>
             </td>
           </tr>`;
       }
-      document.querySelector("#tblKK tbody").innerHTML = html;
+      tbody.innerHTML = html;
     })
     .withFailureHandler(function(err){
-      alert("Gagal memuat data KK: " + err.message);
+      showToast("Gagal memuat data KK: " + err.message, "error");
     })
-    .getKK(SESSION_TOKEN);
+    .getKK(token);
 }
 
 function showFormKK(){
-  document.getElementById("judulModalKK").innerText = "Tambah KK";
-  document.getElementById("kkId").value = "";
-  document.getElementById("noKK").value = "";
-  document.getElementById("kepalaKeluarga").value = "";
-  document.getElementById("alamatKK").value = "";
-  document.getElementById("rtKK").value = "";
-  document.getElementById("rwKK").value = "";
-  document.getElementById("jumlahAnggota").value = "";
-
-  document.getElementById("modalKK").style.display = "flex";
+  $("judulModalKK").innerText = "Tambah KK";
+  $("kkId").value = "";
+  $("noKK").value = "";
+  $("kepalaKeluarga").value = "";
+  $("alamatKK").value = "";
+  $("rtKK").value = "";
+  $("rwKK").value = "";
+  $("jumlahAnggota").value = "";
+  $("modalKK").style.display = "flex";
 }
 
 function editKKForm(id){
   const row = DATA_KK_TERAKHIR.find(r => r[0].toString() === id.toString());
   if (!row) {
-    alert("Data tidak ditemukan, coba muat ulang halaman.");
+    showToast("Data tidak ditemukan, coba muat ulang halaman.", "error");
     return;
   }
-
-  document.getElementById("judulModalKK").innerText = "Edit KK";
-  document.getElementById("kkId").value = row[0];
-  document.getElementById("noKK").value = row[1];
-  document.getElementById("kepalaKeluarga").value = row[2];
-  document.getElementById("alamatKK").value = row[3];
-  document.getElementById("rtKK").value = row[4];
-  document.getElementById("rwKK").value = row[5];
-  document.getElementById("jumlahAnggota").value = row[6];
-
-  document.getElementById("modalKK").style.display = "flex";
+  $("judulModalKK").innerText = "Edit KK";
+  $("kkId").value = row[0];
+  $("noKK").value = row[1];
+  $("kepalaKeluarga").value = row[2];
+  $("alamatKK").value = row[3];
+  $("rtKK").value = row[4];
+  $("rwKK").value = row[5];
+  $("jumlahAnggota").value = row[6];
+  $("modalKK").style.display = "flex";
 }
 
 function tutupModalKK(){
-  document.getElementById("modalKK").style.display = "none";
+  $("modalKK").style.display = "none";
 }
 
-function simpanKK(){
-  const id = document.getElementById("kkId").value;
+function simpanKK(btn){
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis. Silakan login kembali.", "error");
+    logout();
+    return;
+  }
 
+  const id = $("kkId").value;
   const data = {
-    noKK: document.getElementById("noKK").value,
-    kepalaKeluarga: document.getElementById("kepalaKeluarga").value,
-    alamat: document.getElementById("alamatKK").value,
-    rt: document.getElementById("rtKK").value,
-    rw: document.getElementById("rwKK").value,
-    jumlahAnggota: document.getElementById("jumlahAnggota").value
+    noKK: $("noKK").value.trim(),
+    kepalaKeluarga: $("kepalaKeluarga").value.trim(),
+    alamat: $("alamatKK").value.trim(),
+    rt: $("rtKK").value.trim(),
+    rw: $("rwKK").value.trim(),
+    jumlahAnggota: $("jumlahAnggota").value.trim()
   };
+
+  if (!data.noKK || data.noKK.length !== 16) {
+    showToast("Nomor KK wajib diisi tepat 16 digit angka!", "error");
+    return;
+  }
+  if (!data.kepalaKeluarga) {
+    showToast("Nama Kepala Keluarga wajib diisi!", "error");
+    return;
+  }
+
+  toggleButtonLoading(btn, true);
 
   if (id) {
     google.script.run
       .withSuccessHandler(function(){
-        alert("Data KK berhasil diperbarui");
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Data KK berhasil diperbarui!", "success");
         tutupModalKK();
         loadKK();
         loadDashboard();
       })
       .withFailureHandler(function(err){
-        alert("Gagal memperbarui data: " + err.message);
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal memperbarui: " + err.message, "error");
       })
-      .editKK(SESSION_TOKEN, id, data);
+      .editKK(token, id, data);
   } else {
     google.script.run
       .withSuccessHandler(function(){
-        alert("Data KK berhasil disimpan");
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Data KK berhasil disimpan!", "success");
         tutupModalKK();
         loadKK();
         loadDashboard();
       })
       .withFailureHandler(function(err){
-        alert("Gagal menyimpan data: " + err.message);
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal menyimpan: " + err.message, "error");
       })
-      .tambahKK(SESSION_TOKEN, data);
+      .tambahKK(token, data);
   }
 }
 
 function hapusKKData(id){
-  if(confirm("Yakin ingin menghapus data KK ini?")){
-    google.script.run
-      .withSuccessHandler(function(){
-        loadKK();
-        loadDashboard();
-      })
-      .withFailureHandler(function(err){
-        alert("Gagal menghapus data: " + err.message);
-      })
-      .hapusKK(SESSION_TOKEN, id);
-  }
+  if (!confirm("Yakin ingin menghapus data KK ini?")) return;
+  const token = getToken();
+
+  google.script.run
+    .withSuccessHandler(function(){
+      showToast("Data KK berhasil dihapus.", "success");
+      loadKK();
+      loadDashboard();
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal menghapus: " + err.message, "error");
+    })
+    .hapusKK(token, id);
 }
 
 function cariKK(){
-  const keyword = document.getElementById("cariKK").value.toLowerCase();
-  const rows = document.querySelectorAll("#tblKK tbody tr");
-
-  rows.forEach(row => {
-    row.style.display = row.innerText.toLowerCase().includes(keyword)
-      ? ""
-      : "none";
+  const keyword = $("cariKK").value.toLowerCase();
+  document.querySelectorAll("#tblKK tbody tr").forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
   });
 }
 
-// Contoh render baris tabel di JS.html
-tr.innerHTML = `
-  <td>${row[1] || ''}</td>
-  <td>${row[2] || ''}</td>
-  <td>${row[3] || ''}</td>
-  <td>${row[4] || ''}</td>
-  <td>${row[5] || ''}</td>
-  <td>${row[6] || ''}</td>
-  <td>
-    <div class="action-btn-group">
-      <button class="btn-edit" onclick="editKK('${row[0]}')">✏️ Edit</button>
-      <button class="btn-hapus" onclick="hapusKK('${row[0]}')">🗑️ Hapus</button>
-    </div>
-  </td>
-`;
-  
-  // ===============================
-// KK (tambahkan ke JS.html, di bawah fungsi-fungsi Penduduk)
-// ===============================
+// ==========================================
+// MODUL SURAT MASUK (tambahkan ke JS.html, di bawah modul KK)
+// ==========================================
 
-let DATA_KK_TERAKHIR = [];
+let DATA_SURATMASUK_TERAKHIR = [];
 
-function showKK(){
-  setActiveMenu("menuKK");
+function showSuratMasuk(){
+  setActiveMenu("menuSuratMasuk");
   google.script.run
     .withSuccessHandler(function(html){
-      document.getElementById("content").innerHTML = html;
-      loadKK();
+      $("content").innerHTML = html;
+      loadSuratMasuk();
     })
-    .getKKPage();
+    .getSuratMasukPage();
 }
 
-function loadKK(){
-  google.script.run
-    .withSuccessHandler(function(data){
-      DATA_KK_TERAKHIR = data;
-
-      let html = "";
-      for (let i = 1; i < data.length; i++) {
-        // data[i]: [ID, NoKK, KepalaKeluarga, Alamat, RT, RW, JumlahAnggota]
-        html += `
-          <tr>
-            <td>${data[i][1]}</td>
-            <td>${data[i][2]}</td>
-            <td>${data[i][3]}</td>
-            <td>${data[i][4]}</td>
-            <td>${data[i][5]}</td>
-            <td>${data[i][6]}</td>
-            <td>
-              <button onclick="editKKForm('${data[i][0]}')">✏️ Edit</button>
-              <button onclick="hapusKKData('${data[i][0]}')">🗑️ Hapus</button>
-            </td>
-          </tr>`;
-      }
-      document.querySelector("#tblKK tbody").innerHTML = html;
-    })
-    .withFailureHandler(function(err){
-      alert("Gagal memuat data KK: " + err.message);
-    })
-    .getKK(SESSION_TOKEN);
-}
-
-function showFormKK(){
-  document.getElementById("judulModalKK").innerText = "Tambah KK";
-  document.getElementById("kkId").value = "";
-  document.getElementById("noKK").value = "";
-  document.getElementById("kepalaKeluarga").value = "";
-  document.getElementById("alamatKK").value = "";
-  document.getElementById("rtKK").value = "";
-  document.getElementById("rwKK").value = "";
-  document.getElementById("jumlahAnggota").value = "";
-
-  document.getElementById("modalKK").style.display = "flex";
-}
-
-function editKKForm(id){
-  const row = DATA_KK_TERAKHIR.find(r => r[0].toString() === id.toString());
-  if (!row) {
-    alert("Data tidak ditemukan, coba muat ulang halaman.");
+function loadSuratMasuk(){
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis. Silakan login kembali.", "error");
+    logout();
     return;
   }
 
-  document.getElementById("judulModalKK").innerText = "Edit KK";
-  document.getElementById("kkId").value = row[0];
-  document.getElementById("noKK").value = row[1];
-  document.getElementById("kepalaKeluarga").value = row[2];
-  document.getElementById("alamatKK").value = row[3];
-  document.getElementById("rtKK").value = row[4];
-  document.getElementById("rwKK").value = row[5];
-  document.getElementById("jumlahAnggota").value = row[6];
+  google.script.run
+    .withSuccessHandler(function(data){
+      DATA_SURATMASUK_TERAKHIR = data;
+      const tbody = document.querySelector("#tblSuratMasuk tbody");
+      if (!tbody) return;
 
-  document.getElementById("modalKK").style.display = "flex";
+      if (!data || data.length <= 1) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Belum ada data surat masuk.</td></tr>';
+        return;
+      }
+
+      let html = "";
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        // row: [ID, NoAgenda, NomorSurat, TanggalSurat, TanggalTerima, Pengirim, Perihal, Keterangan, Status, File]
+        const linkFile = row[9]
+          ? `<a href="${row[9]}" target="_blank">📎 Lihat</a>`
+          : "-";
+
+        html += `
+          <tr>
+            <td>${row[1] || ''}</td>
+            <td>${row[2] || ''}</td>
+            <td>${row[4] || ''}</td>
+            <td>${row[5] || ''}</td>
+            <td>${row[6] || ''}</td>
+            <td>${row[8] || ''}</td>
+            <td>${linkFile}</td>
+            <td class="aksi">
+              <button class="btn-edit" onclick="editSuratMasukForm('${row[0]}')">✏️ Edit</button>
+              <button class="btn-hapus" onclick="hapusSuratMasukData('${row[0]}')">🗑️ Hapus</button>
+            </td>
+          </tr>`;
+      }
+      tbody.innerHTML = html;
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal memuat data Surat Masuk: " + err.message, "error");
+    })
+    .getSuratMasuk(token);
 }
 
-function tutupModalKK(){
-  document.getElementById("modalKK").style.display = "none";
+function showFormSuratMasuk(){
+  $("judulModalSuratMasuk").innerText = "Tambah Surat Masuk";
+  $("suratMasukId").value = "";
+  $("fileSuratExisting").value = "";
+  $("nomorSurat").value = "";
+  $("tanggalSurat").value = "";
+  $("tanggalTerima").value = "";
+  $("pengirim").value = "";
+  $("perihal").value = "";
+  $("keterangan").value = "";
+  $("status").value = "Diproses";
+  $("fileSurat").value = "";
+  $("infoFileLama").innerText = "";
+  $("modalSuratMasuk").style.display = "flex";
 }
 
-function simpanKK(){
-  const id = document.getElementById("kkId").value;
+function editSuratMasukForm(id){
+  const row = DATA_SURATMASUK_TERAKHIR.find(r => r[0].toString() === id.toString());
+  if (!row) {
+    showToast("Data tidak ditemukan, coba muat ulang halaman.", "error");
+    return;
+  }
+  $("judulModalSuratMasuk").innerText = "Edit Surat Masuk";
+  $("suratMasukId").value = row[0];
+  $("fileSuratExisting").value = row[9] || "";
+  $("nomorSurat").value = row[2];
+  $("tanggalSurat").value = formatTanggalUntukInput(row[3]);
+  $("tanggalTerima").value = formatTanggalUntukInput(row[4]);
+  $("pengirim").value = row[5];
+  $("perihal").value = row[6];
+  $("keterangan").value = row[7];
+  $("status").value = row[8];
+  $("fileSurat").value = "";
+  $("infoFileLama").innerText = row[9] ? "File saat ini sudah terlampir. Pilih file baru untuk menggantinya." : "";
+  $("modalSuratMasuk").style.display = "flex";
+}
 
+function tutupModalSuratMasuk(){
+  $("modalSuratMasuk").style.display = "none";
+}
+
+function simpanSuratMasuk(btn){
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis. Silakan login kembali.", "error");
+    logout();
+    return;
+  }
+
+  const id = $("suratMasukId").value;
+  const nomorSurat = $("nomorSurat").value.trim();
+  const pengirim = $("pengirim").value.trim();
+  const perihal = $("perihal").value.trim();
+
+  if (!nomorSurat) {
+    showToast("Nomor Surat wajib diisi!", "error");
+    return;
+  }
+  if (!pengirim) {
+    showToast("Pengirim wajib diisi!", "error");
+    return;
+  }
+  if (!perihal) {
+    showToast("Perihal wajib diisi!", "error");
+    return;
+  }
+
+  toggleButtonLoading(btn, true);
+
+  const fileInput = $("fileSurat");
+  if (fileInput.files && fileInput.files.length > 0) {
+    // Ada file baru dipilih -> baca jadi base64, upload dulu, baru simpan data
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+      const base64Data = e.target.result.split(",")[1]; // buang prefix "data:...;base64,"
+
+      google.script.run
+        .withSuccessHandler(function(fileURL){
+          lanjutkanSimpanSuratMasuk(btn, token, id, fileURL);
+        })
+        .withFailureHandler(function(err){
+          toggleButtonLoading(btn, false, "💾 Simpan");
+          showToast("Gagal upload file: " + err.message, "error");
+        })
+        .uploadFileSurat(token, base64Data, file.name, file.type);
+    };
+
+    reader.readAsDataURL(file);
+  } else {
+    // Tidak ada file baru -> pakai link file lama (kalau mode Edit) atau kosong (mode Tambah)
+    const fileURLLama = $("fileSuratExisting").value;
+    lanjutkanSimpanSuratMasuk(btn, token, id, fileURLLama);
+  }
+}
+
+function lanjutkanSimpanSuratMasuk(btn, token, id, fileURL){
   const data = {
-    noKK: document.getElementById("noKK").value,
-    kepalaKeluarga: document.getElementById("kepalaKeluarga").value,
-    alamat: document.getElementById("alamatKK").value,
-    rt: document.getElementById("rtKK").value,
-    rw: document.getElementById("rwKK").value,
-    jumlahAnggota: document.getElementById("jumlahAnggota").value
+    nomorSurat: $("nomorSurat").value.trim(),
+    tanggalSurat: $("tanggalSurat").value,
+    tanggalTerima: $("tanggalTerima").value,
+    pengirim: $("pengirim").value.trim(),
+    perihal: $("perihal").value.trim(),
+    keterangan: $("keterangan").value.trim(),
+    status: $("status").value,
+    fileURL: fileURL || ''
   };
 
   if (id) {
     google.script.run
       .withSuccessHandler(function(){
-        alert("Data KK berhasil diperbarui");
-        tutupModalKK();
-        loadKK();
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Data berhasil diperbarui!", "success");
+        tutupModalSuratMasuk();
+        loadSuratMasuk();
         loadDashboard();
       })
       .withFailureHandler(function(err){
-        alert("Gagal memperbarui data: " + err.message);
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal memperbarui: " + err.message, "error");
       })
-      .editKK(SESSION_TOKEN, id, data);
+      .editSuratMasuk(token, id, data);
   } else {
     google.script.run
       .withSuccessHandler(function(){
-        alert("Data KK berhasil disimpan");
-        tutupModalKK();
-        loadKK();
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Data berhasil disimpan!", "success");
+        tutupModalSuratMasuk();
+        loadSuratMasuk();
         loadDashboard();
       })
       .withFailureHandler(function(err){
-        alert("Gagal menyimpan data: " + err.message);
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal menyimpan: " + err.message, "error");
       })
-      .tambahKK(SESSION_TOKEN, data);
+      .tambahSuratMasuk(token, data);
   }
 }
 
-function hapusKKData(id){
-  if(confirm("Yakin ingin menghapus data KK ini?")){
-    google.script.run
-      .withSuccessHandler(function(){
-        loadKK();
-        loadDashboard();
-      })
-      .withFailureHandler(function(err){
-        alert("Gagal menghapus data: " + err.message);
-      })
-      .hapusKK(SESSION_TOKEN, id);
-  }
+function hapusSuratMasukData(id){
+  if (!confirm("Yakin ingin menghapus data surat ini?")) return;
+  const token = getToken();
+
+  google.script.run
+    .withSuccessHandler(function(){
+      showToast("Data berhasil dihapus.", "success");
+      loadSuratMasuk();
+      loadDashboard();
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal menghapus: " + err.message, "error");
+    })
+    .hapusSuratMasuk(token, id);
 }
 
-function cariKK(){
-  const keyword = document.getElementById("cariKK").value.toLowerCase();
-  const rows = document.querySelectorAll("#tblKK tbody tr");
-
-  rows.forEach(row => {
-    row.style.display = row.innerText.toLowerCase().includes(keyword)
-      ? ""
-      : "none";
+function cariSuratMasuk(){
+  const keyword = $("cariSuratMasuk").value.toLowerCase();
+  document.querySelectorAll("#tblSuratMasuk tbody tr").forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
   });
 }
 

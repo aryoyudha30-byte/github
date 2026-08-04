@@ -1,9 +1,79 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-  </head>
-  <body>
-    
-  </body>
-</html>
+<div class="page">
+    <div class="page-header">
+        <h2>📥 Surat Masuk</h2>
+        <button onclick="showFormSuratMasuk()">
+            ➕ Tambah Surat
+        </button>
+    </div>
+    <input
+        type="text"
+        id="cariSuratMasuk"
+        placeholder="Cari Nomor Surat, Pengirim atau Perihal..."
+        onkeyup="cariSuratMasuk()"
+    >
+    <table id="tblSuratMasuk">
+        <thead>
+            <tr>
+                <th>No Agenda</th>
+                <th>Nomor Surat</th>
+                <th>Tanggal Terima</th>
+                <th>Pengirim</th>
+                <th>Perihal</th>
+                <th>Status</th>
+                <th>File</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<!-- =======================================
+     MODAL SURAT MASUK
+======================================== -->
+<div id="modalSuratMasuk" class="modal" style="display:none;">
+<div class="modal-content">
+<h3 id="judulModalSuratMasuk">Tambah Surat Masuk</h3>
+
+<input type="hidden" id="suratMasukId">
+<!-- Menyimpan link file lama, dipakai kalau saat Edit tidak upload file baru -->
+<input type="hidden" id="fileSuratExisting">
+
+<label>Nomor Surat</label>
+<input type="text" id="nomorSurat" placeholder="Contoh : 140/SM/VIII/2026">
+
+<label>Tanggal Surat</label>
+<input type="date" id="tanggalSurat">
+
+<label>Tanggal Terima</label>
+<input type="date" id="tanggalTerima">
+
+<label>Pengirim</label>
+<input type="text" id="pengirim" placeholder="Nama Instansi / Pengirim">
+
+<label>Perihal</label>
+<input type="text" id="perihal" placeholder="Perihal Surat">
+
+<label>Keterangan</label>
+<input type="text" id="keterangan" placeholder="Keterangan Tambahan">
+
+<label>Status</label>
+<select id="status">
+<option value="Diproses">Diproses</option>
+<option value="Selesai">Selesai</option>
+<option value="Diarsipkan">Diarsipkan</option>
+<option value="Ditolak">Ditolak</option>
+</select>
+
+<label>Lampiran File (scan surat, PDF/JPG/PNG)</label>
+<input type="file" id="fileSurat" accept=".pdf,.jpg,.jpeg,.png">
+<small id="infoFileLama" style="display:block; margin-bottom:10px; color:#666;"></small>
+
+<div class="modal-actions">
+<button onclick="simpanSuratMasuk(this)">💾 Simpan</button>
+<button onclick="tutupModalSuratMasuk()">❌ Batal</button>
+</div>
+
+</div>
+</div>
