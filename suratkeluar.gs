@@ -233,6 +233,6 @@ function hapusSuratKeluar(token,id){
 // ======================================
 function getSuratKeluarPage(){
   return HtmlService
-    .createHtmlOutputFromFile("Suratkeluar")
+    .createHtmlOutputFromFile("SuratKeluar")
     .getContent();
 }
