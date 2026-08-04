@@ -1,505 +1,238 @@
-// ===========================================================
+// ======================================
 // SURATKELUAR.GS
-// Modul Pengelolaan Surat Keluar
-//
 // Struktur Sheet "SuratKeluar"
-// -----------------------------------------------------------
-// A : ID
-// B : No Agenda
-// C : Nomor Surat
-// D : Tanggal Surat
-// E : Tujuan
-// F : Perihal
-// G : Penandatangan
-// H : Keterangan
-// I : Status
-// ===========================================================
+// A=ID B=NoAgenda C=NomorSurat D=TanggalSurat E=Tujuan
+// F=Perihal G=Penandatangan H=Keterangan I=Status J=File
+// ======================================
 
-
-
-// ===========================================================
-// HALAMAN HTML
-// ===========================================================
-
-function getSuratKeluarPage() {
-  return HtmlService
-    .createHtmlOutputFromFile("Suratkeluar")
-    .getContent();
-}
-
-
-
-// ===========================================================
-// HELPER
-// ===========================================================
-
-function parseDateInput_(value){
-
-  if(!value) return "";
-
-  if(Object.prototype.toString.call(value)==="[object Date]"){
-    return value;
+function parseDateInput_(dateStr){
+  if(!dateStr) return "";
+  if(Object.prototype.toString.call(dateStr)==="[object Date]"){
+    return dateStr;
   }
-
-  const p=value.toString().split("-");
-
-  if(p.length===3){
-    return new Date(
-      Number(p[0]),
-      Number(p[1])-1,
-      Number(p[2])
-    );
+  const parts=dateStr.toString().split("-");
+  if(parts.length===3){
+    return new Date(parts[0],parts[1]-1,parts[2]);
   }
-
-  return value;
-
+  return "";
 }
-
-
-
-// ===========================================================
-// Generate Nomor Agenda
-// Contoh:
-// SK-0001
-// SK-0002
-// ===========================================================
-
-function generateNoAgenda_(id){
-
-  return "SK-" + Utilities.formatString("%04d",id);
-
-}
-
-
-
-// ===========================================================
-// Validasi Data
-// ===========================================================
 
 function validasiSuratKeluar_(data){
-
   if(!data.nomorSurat || data.nomorSurat.toString().trim()==""){
     throw new Error("Nomor Surat wajib diisi.");
   }
-
-  if(data.nomorSurat.length>100){
-    throw new Error("Nomor Surat maksimal 100 karakter.");
-  }
-
   if(!data.tujuan || data.tujuan.toString().trim()==""){
     throw new Error("Tujuan wajib diisi.");
   }
-
-  if(data.tujuan.length>200){
-    throw new Error("Tujuan maksimal 200 karakter.");
-  }
-
   if(!data.perihal || data.perihal.toString().trim()==""){
     throw new Error("Perihal wajib diisi.");
   }
-
-  if(data.perihal.length>300){
-    throw new Error("Perihal maksimal 300 karakter.");
-  }
-
   if(!data.penandatangan || data.penandatangan.toString().trim()==""){
     throw new Error("Penandatangan wajib diisi.");
   }
-
-  const statusValid=[
-    "Draft",
-    "Diproses",
-    "Dikirim",
-    "Diterima",
-    "Diarsipkan"
-  ];
-
-  if(data.status && !statusValid.includes(data.status)){
-    throw new Error("Status tidak valid.");
+  if(data.nomorSurat.length>100){
+    throw new Error("Nomor Surat maksimal 100 karakter.");
   }
-
+  if(data.tujuan.length>150){
+    throw new Error("Tujuan maksimal 150 karakter.");
+  }
+  if(data.perihal.length>250){
+    throw new Error("Perihal maksimal 250 karakter.");
+  }
+  if(data.penandatangan.length>100){
+    throw new Error("Nama Penandatangan maksimal 100 karakter.");
+  }
+  const statusValid=["Draft","Diproses","Dikirim","Diterima","Diarsipkan"];
+  if(!statusValid.includes(data.status)){
+    data.status="Draft";
+  }
 }
 
-
-
-// ===========================================================
-// Ambil Semua Surat Keluar
-// ===========================================================
-
-function getSuratKeluar(token){
-
-  const session=verifySession(token);
-
+// ======================================
+// Upload File Lampiran Surat Keluar
+// ======================================
+function uploadFileSuratKeluar(token, base64Data, fileName, mimeType){
+  const session = verifySession(token);
   if(!session){
     throw new Error("Sesi login tidak valid.");
   }
+  const folder = getOrCreateFolderSuratKeluar();
+  const decoded = Utilities.base64Decode(base64Data);
+  const blob = Utilities.newBlob(decoded, mimeType, fileName);
+  const file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return file.getUrl();
+}
 
-  const sheet=getSheet("SuratKeluar");
+function getOrCreateFolderSuratKeluar(){
+  const namaFolder = "Lampiran Surat Keluar - Sistem Desa";
+  const folders = DriveApp.getFoldersByName(namaFolder);
+  if(folders.hasNext()){
+    return folders.next();
+  }
+  return DriveApp.createFolder(namaFolder);
+}
 
-  if(!sheet){
+// ======================================
+// Ambil Data
+// ======================================
+function getSuratKeluar(token){
+  const session=verifySession(token);
+  if(!session){
+    throw new Error("Sesi login tidak valid.");
+  }
+  const sh=getSheet("SuratKeluar");
+  if(!sh){
     throw new Error("Sheet SuratKeluar tidak ditemukan.");
   }
-
-  const data=sheet.getDataRange().getValues();
-
-  const safeData=data.map(row=>
-
-    row.map(cell=>{
-
+  const values=sh.getDataRange().getValues();
+  return values.map(function(row,index){
+    if(index==0) return row;
+    return row.map(function(cell){
       if(Object.prototype.toString.call(cell)==="[object Date]"){
-
-        return Utilities.formatDate(
-          cell,
-          Session.getScriptTimeZone(),
-          "yyyy-MM-dd"
-        );
-
+        return Utilities.formatDate(cell, Session.getScriptTimeZone(), "yyyy-MM-dd");
       }
-
       return cell;
-
-    })
-
-  );
-
-  return safeData;
-
+    });
+  });
 }
 
-
-
-// ===========================================================
-// Tambah Surat Keluar
-// ===========================================================
-
+// ======================================
+// Tambah
+// ======================================
 function tambahSuratKeluar(token,data){
-
-  const session=verifySession(token);
-
-  if(!session){
-    throw new Error("Sesi login tidak valid.");
-  }
-
   const lock=LockService.getScriptLock();
-
-  if(!lock.tryLock(10000)){
-    throw new Error("Sistem sedang sibuk. Silakan coba kembali.");
-  }
-
+  lock.waitLock(30000);
   try{
-
-    const sheet=getSheet("SuratKeluar");
-
-    if(!sheet){
-      throw new Error("Sheet SuratKeluar tidak ditemukan.");
+    const session=verifySession(token);
+    if(!session){
+      throw new Error("Sesi login tidak valid.");
     }
-
     validasiSuratKeluar_(data);
 
-    const values=sheet.getDataRange().getValues();
-
+    const sh=getSheet("SuratKeluar");
+    const values=sh.getDataRange().getValues();
     let maxId=0;
 
-    const nomorSurat=data.nomorSurat
-      .toString()
-      .trim()
-      .toLowerCase();
-
     for(let i=1;i<values.length;i++){
-
+      if(values[i][2] &&
+         values[i][2].toString().trim().toLowerCase()==
+         data.nomorSurat.toString().trim().toLowerCase()){
+        throw new Error("Nomor Surat sudah terdaftar.");
+      }
       const id=Number(values[i][0]);
-
-      if(!isNaN(id) && id>maxId){
+      if(id>maxId){
         maxId=id;
       }
-
-      if(
-        values[i][2] &&
-        values[i][2]
-          .toString()
-          .trim()
-          .toLowerCase()==nomorSurat
-      ){
-
-        throw new Error(
-          "Nomor Surat sudah terdaftar."
-        );
-
-      }
-
     }
 
     const newId=maxId+1;
+    const noAgenda="SK-"+Utilities.formatString("%04d",newId);
 
-    const noAgenda=generateNoAgenda_(newId);
-
-    sheet.appendRow([
-
+    sh.getRange(sh.getLastRow()+1, 1, 1, 10).setValues([[
       newId,
-
       noAgenda,
-
       data.nomorSurat.trim(),
-
       parseDateInput_(data.tanggalSurat),
-
       data.tujuan.trim(),
-
       data.perihal.trim(),
-
       data.penandatangan.trim(),
-
-      data.keterangan
-        ? data.keterangan.trim()
-        : "",
-
-      data.status || "Draft"
-
-    ]);
-
+      data.keterangan || "",
+      data.status || "Draft",
+      data.fileURL || ""
+    ]]);
     return true;
 
-  }
-
-  catch(err){
-
+  }catch(err){
     Logger.log(err);
-
     throw err;
-
-  }
-
-  finally{
-
+  }finally{
     lock.releaseLock();
-
   }
-
 }
 
-// ===========================================================
-// Edit Surat Keluar
-// ===========================================================
-
-function editSuratKeluar(token, id, data){
-
-  const session = verifySession(token);
-
-  if(!session){
-    throw new Error("Sesi login tidak valid.");
-  }
-
-  const lock = LockService.getScriptLock();
-
-  if(!lock.tryLock(10000)){
-    throw new Error("Sistem sedang sibuk. Silakan coba kembali.");
-  }
-
+// ======================================
+// Edit
+// ======================================
+function editSuratKeluar(token,id,data){
+  const lock=LockService.getScriptLock();
+  lock.waitLock(30000);
   try{
-
-    const sheet = getSheet("SuratKeluar");
-
-    if(!sheet){
-      throw new Error("Sheet SuratKeluar tidak ditemukan.");
+    const session=verifySession(token);
+    if(!session){
+      throw new Error("Sesi login tidak valid.");
     }
-
     validasiSuratKeluar_(data);
 
-    const values = sheet.getDataRange().getValues();
-
-    let targetRow = -1;
-
-    const nomorSurat = data.nomorSurat
-      .toString()
-      .trim()
-      .toLowerCase();
+    const sh=getSheet("SuratKeluar");
+    const values=sh.getDataRange().getValues();
+    let row=-1;
 
     for(let i=1;i<values.length;i++){
-
-      if(values[i][0].toString() === id.toString()){
-        targetRow = i + 1;
+      if(values[i][0].toString()==id.toString()){
+        row=i+1;
         continue;
       }
-
-      if(
-        values[i][2] &&
-        values[i][2]
-          .toString()
-          .trim()
-          .toLowerCase() === nomorSurat
-      ){
-
-        throw new Error("Nomor Surat sudah digunakan oleh surat lain.");
-
+      if(values[i][2] &&
+         values[i][2].toString().trim().toLowerCase()==
+         data.nomorSurat.toString().trim().toLowerCase()){
+        throw new Error("Nomor Surat sudah dipakai.");
       }
-
     }
 
-    if(targetRow==-1){
-      throw new Error("Data Surat Keluar tidak ditemukan.");
+    if(row==-1){
+      throw new Error("Data tidak ditemukan.");
     }
 
-    sheet.getRange(targetRow,3,1,7).setValues([[
+    const fileURLLama = values[row-1][9];
+    const fileURLBaru = data.fileURL || fileURLLama || "";
 
+    sh.getRange(row, 3, 1, 8).setValues([[
       data.nomorSurat.trim(),
-
       parseDateInput_(data.tanggalSurat),
-
       data.tujuan.trim(),
-
       data.perihal.trim(),
-
       data.penandatangan.trim(),
-
-      data.keterangan
-        ? data.keterangan.trim()
-        : "",
-
-      data.status || "Draft"
-
+      data.keterangan || "",
+      data.status || "Draft",
+      fileURLBaru
     ]]);
-
     return true;
 
-  }
-
-  catch(err){
-
+  }catch(err){
     Logger.log(err);
-
     throw err;
-
-  }
-
-  finally{
-
+  }finally{
     lock.releaseLock();
-
   }
-
 }
 
-
-
-// ===========================================================
-// Hapus Surat Keluar
-// ===========================================================
-
+// ======================================
+// Hapus
+// ======================================
 function hapusSuratKeluar(token,id){
-
-  const session = verifySession(token);
-
+  const session=verifySession(token);
   if(!session){
     throw new Error("Sesi login tidak valid.");
   }
-
-  const lock = LockService.getScriptLock();
-
-  if(!lock.tryLock(10000)){
-    throw new Error("Sistem sedang sibuk. Silakan coba kembali.");
-  }
-
-  try{
-
-    const sheet = getSheet("SuratKeluar");
-
-    if(!sheet){
-      throw new Error("Sheet SuratKeluar tidak ditemukan.");
+  const sh=getSheet("SuratKeluar");
+  const values=sh.getDataRange().getValues();
+  for(let i=1;i<values.length;i++){
+    if(values[i][0].toString()==id.toString()){
+      sh.deleteRow(i+1);
+      return true;
     }
-
-    const values = sheet.getDataRange().getValues();
-
-    for(let i=1;i<values.length;i++){
-
-      if(values[i][0].toString()==id.toString()){
-
-        sheet.deleteRow(i+1);
-
-        return true;
-
-      }
-
-    }
-
-    throw new Error("Data Surat Keluar tidak ditemukan.");
-
   }
-
-  catch(err){
-
-    Logger.log(err);
-
-    throw err;
-
-  }
-
-  finally{
-
-    lock.releaseLock();
-
-  }
-
+  throw new Error("Data tidak ditemukan.");
 }
 
-
-
-// ===========================================================
-// Ambil Surat Keluar Berdasarkan ID
-// ===========================================================
-
-function getSuratKeluarById(token,id){
-
-  const session = verifySession(token);
-
-  if(!session){
-    throw new Error("Sesi login tidak valid.");
-  }
-
-  const sheet = getSheet("SuratKeluar");
-
-  if(!sheet){
-    throw new Error("Sheet SuratKeluar tidak ditemukan.");
-  }
-
-  const values = sheet.getDataRange().getValues();
-
-  for(let i=1;i<values.length;i++){
-
-    if(values[i][0].toString()==id.toString()){
-
-      return{
-
-        id:values[i][0],
-
-        noAgenda:values[i][1],
-
-        nomorSurat:values[i][2],
-
-        tanggalSurat:
-          values[i][3]
-          ? Utilities.formatDate(
-              new Date(values[i][3]),
-              Session.getScriptTimeZone(),
-              "yyyy-MM-dd"
-            )
-          : "",
-
-        tujuan:values[i][4],
-
-        perihal:values[i][5],
-
-        penandatangan:values[i][6],
-
-        keterangan:values[i][7],
-
-        status:values[i][8]
-
-      };
-
-    }
-
-  }
-
-  throw new Error("Data Surat Keluar tidak ditemukan.");
-
+// ======================================
+// Halaman HTML
+// PENTING: nama file persis "Suratkeluar" (k kecil), sesuai
+// nama file asli di Apps Script -- BUKAN "SuratKeluar" dari GitHub.
+// ======================================
+function getSuratKeluarPage(){
+  return HtmlService
+    .createHtmlOutputFromFile("Suratkeluar")
+    .getContent();
 }

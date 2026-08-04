@@ -1,198 +1,69 @@
 <!-- ======================================================
-     SURATKELUAR.HTML
-     ====================================================== -->
-
+SURATKELUAR.HTML
+====================================================== -->
 <div class="page">
 
-    <div class="page-header">
-
-        <h2>📤 Surat Keluar</h2>
-
-        <button onclick="showFormSuratKeluar()">
-            ➕ Tambah Surat
-        </button>
-
-    </div>
-
-    <!-- =========================
-         SEARCH
-    ========================== -->
-
-    <input
-        type="text"
-        id="cariSuratKeluar"
-        placeholder="Cari Nomor Surat, Tujuan atau Perihal..."
-        onkeyup="cariSuratKeluar()">
-
-    <!-- =========================
-         TABEL
-    ========================== -->
-
-    <table id="tblSuratKeluar">
-
-        <thead>
-
-            <tr>
-
-                <th>No Agenda</th>
-
-                <th>Nomor Surat</th>
-
-                <th>Tanggal</th>
-
-                <th>Tujuan</th>
-
-                <th>Perihal</th>
-
-                <th>Status</th>
-
-                <th>Aksi</th>
-
-            </tr>
-
-        </thead>
-
-        <tbody>
-
-        </tbody>
-
-    </table>
-
+<div class="page-header">
+<h2>📤 Surat Keluar</h2>
+<button onclick="showFormSuratKeluar()">➕ Tambah Surat</button>
 </div>
 
+<input
+  type="text"
+  id="cariSuratKeluar"
+  placeholder="Cari Nomor Surat, Tujuan atau Perihal..."
+  onkeyup="cariSuratKeluar()">
 
-
-
+<table id="tblSuratKeluar">
+<thead>
+<tr>
+<th>No Agenda</th>
+<th>Nomor Surat</th>
+<th>Tanggal</th>
+<th>Tujuan</th>
+<th>Perihal</th>
+<th>Status</th>
+<th>File</th>
+<th>Aksi</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
 
 <!-- ======================================================
-     MODAL
-     ====================================================== -->
+MODAL
+====================================================== -->
+<div id="modalSuratKeluar" class="modal" style="display:none;">
+<div class="modal-content">
+<h3 id="judulModalSuratKeluar">Tambah Surat Keluar</h3>
 
-<div
-    id="modalSuratKeluar"
-    class="modal"
-    style="display:none;">
+<input type="hidden" id="suratKeluarId">
+<input type="hidden" id="fileSuratKeluarExisting">
 
-    <div class="modal-content">
+<input id="nomorSuratKeluar" maxlength="100" placeholder="Nomor Surat">
+<input type="date" id="tanggalSuratKeluar">
+<input id="tujuanSurat" maxlength="200" placeholder="Tujuan Surat">
+<input id="perihalSuratKeluar" maxlength="300" placeholder="Perihal">
+<input id="penandatangan" maxlength="100" placeholder="Penandatangan">
+<input id="keteranganSuratKeluar" maxlength="300" placeholder="Keterangan">
 
-        <h3 id="judulModalSuratKeluar">
+<select id="statusSuratKeluar">
+<option value="Draft">Draft</option>
+<option value="Diproses">Diproses</option>
+<option value="Dikirim">Dikirim</option>
+<option value="Diterima">Diterima</option>
+<option value="Diarsipkan">Diarsipkan</option>
+</select>
 
-            Tambah Surat Keluar
+<label>Lampiran File (scan surat, PDF/JPG/PNG)</label>
+<input type="file" id="fileSuratKeluar" accept=".pdf,.jpg,.jpeg,.png">
+<small id="infoFileLamaSuratKeluar" style="display:block; margin-bottom:10px; color:#666;"></small>
 
-        </h3>
+<div class="modal-actions">
+<button id="btnSimpanSuratKeluar" onclick="simpanSuratKeluar(this)">💾 Simpan</button>
+<button onclick="tutupModalSuratKeluar()">❌ Batal</button>
+</div>
 
-
-        <input
-            type="hidden"
-            id="suratKeluarId">
-
-
-        <!-- Nomor Surat -->
-
-        <input
-            id="nomorSuratKeluar"
-            maxlength="100"
-            placeholder="Nomor Surat">
-
-
-        <!-- Tanggal -->
-
-        <input
-            type="date"
-            id="tanggalSuratKeluar">
-
-
-        <!-- Tujuan -->
-
-        <input
-            id="tujuanSurat"
-            maxlength="200"
-            placeholder="Tujuan Surat">
-
-
-        <!-- Perihal -->
-
-        <input
-            id="perihalSuratKeluar"
-            maxlength="300"
-            placeholder="Perihal">
-
-
-        <!-- Penandatangan -->
-
-        <input
-            id="penandatangan"
-            maxlength="100"
-            placeholder="Penandatangan">
-
-
-        <!-- Keterangan -->
-
-        <input
-            id="keteranganSuratKeluar"
-            maxlength="300"
-            placeholder="Keterangan">
-
-
-        <!-- Status -->
-
-        <select id="statusSuratKeluar">
-
-            <option value="Draft">
-
-                Draft
-
-            </option>
-
-            <option value="Diproses">
-
-                Diproses
-
-            </option>
-
-            <option value="Dikirim">
-
-                Dikirim
-
-            </option>
-
-            <option value="Diterima">
-
-                Diterima
-
-            </option>
-
-            <option value="Diarsipkan">
-
-                Diarsipkan
-
-            </option>
-
-        </select>
-
-
-
-        <!-- Tombol -->
-
-        <div class="modal-actions">
-
-            <button
-                id="btnSimpanSuratKeluar"
-                onclick="simpanSuratKeluar(this)">
-
-                💾 Simpan
-
-            </button>
-
-            <button
-                onclick="tutupModalSuratKeluar()">
-
-                ❌ Batal
-
-            </button>
-
-        </div>
-
-    </div>
-
+</div>
 </div>

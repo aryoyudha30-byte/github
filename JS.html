@@ -781,682 +781,288 @@ function cariSuratMasuk(){
 }
 
 // ======================================================
-// MODUL SURAT KELUAR
+// MODUL SURAT KELUAR (tambahkan ke JS.html, di bawah modul Surat Masuk)
 // ======================================================
 
 let DATA_SURATKELUAR_TERAKHIR = [];
 
-
-// ======================================================
-// Menampilkan Halaman Surat Keluar
-// ======================================================
-
 function showSuratKeluar(){
-
-    setActiveMenu("menuSuratKeluar");
-
-    google.script.run
-
-        .withSuccessHandler(function(html){
-
-            $("content").innerHTML = html;
-
-            loadSuratKeluar();
-
-        })
-
-        .withFailureHandler(function(err){
-
-            showToast(err.message,"error");
-
-        })
-
-        .getSuratKeluarPage();
-
+  setActiveMenu("menuSuratKeluar");
+  google.script.run
+    .withSuccessHandler(function(html){
+      $("content").innerHTML = html;
+      loadSuratKeluar();
+    })
+    .withFailureHandler(function(err){
+      showToast(err.message, "error");
+    })
+    .getSuratKeluarPage();
 }
-
-
-
-// ======================================================
-// Load Data Surat Keluar
-// ======================================================
 
 function loadSuratKeluar(){
+  const token = getToken();
+  if(!token){
+    logout();
+    return;
+  }
 
-    const token = getToken();
+  google.script.run
+    .withSuccessHandler(function(data){
+      DATA_SURATKELUAR_TERAKHIR = data;
+      const tbody = document.querySelector("#tblSuratKeluar tbody");
+      if(!tbody) return;
 
-    if(!token){
-
-        logout();
-
+      if(data.length<=1){
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center">Belum ada data Surat Keluar.</td></tr>`;
         return;
+      }
 
-    }
+      let html="";
+      for(let i=1;i<data.length;i++){
+        const row=data[i];
+        const linkFile = row[9]
+          ? `<a href="${row[9]}" target="_blank">📎 Lihat</a>`
+          : "-";
 
-    google.script.run
-
-        .withSuccessHandler(function(data){
-
-            DATA_SURATKELUAR_TERAKHIR = data;
-
-            const tbody =
-                document.querySelector("#tblSuratKeluar tbody");
-
-            if(!tbody) return;
-
-            if(data.length<=1){
-
-                tbody.innerHTML=
-
-                `<tr>
-
-                    <td colspan="7" style="text-align:center">
-
-                        Belum ada data Surat Keluar.
-
-                    </td>
-
-                </tr>`;
-
-                return;
-
-            }
-
-            let html="";
-
-            for(let i=1;i<data.length;i++){
-
-                const row=data[i];
-
-                html+=`
-
-                <tr>
-
-                    <td>${row[1]}</td>
-
-                    <td>${row[2]}</td>
-
-                    <td>${row[3]}</td>
-
-                    <td>${row[4]}</td>
-
-                    <td>${row[5]}</td>
-
-                    <td>
-
-                        ${getBadgeStatusSuratKeluar(row[8])}
-
-                    </td>
-
-                    <td class="aksi">
-
-                        <button
-                            class="btn-edit"
-                            onclick="editSuratKeluarForm('${row[0]}')">
-
-                            ✏️ Edit
-
-                        </button>
-
-                        <button
-                            class="btn-hapus"
-                            onclick="hapusSuratKeluarData('${row[0]}')">
-
-                            🗑️ Hapus
-
-                        </button>
-
-                    </td>
-
-                </tr>
-
-                `;
-
-            }
-
-            tbody.innerHTML=html;
-
-        })
-
-        .withFailureHandler(function(err){
-
-            showToast(err.message,"error");
-
-        })
-
-        .getSuratKeluar(token);
-
+        html+=`
+        <tr>
+          <td>${row[1]}</td>
+          <td>${row[2]}</td>
+          <td>${row[3]}</td>
+          <td>${row[4]}</td>
+          <td>${row[5]}</td>
+          <td>${getBadgeStatusSuratKeluar(row[8])}</td>
+          <td>${linkFile}</td>
+          <td class="aksi">
+            <button class="btn-edit" onclick="editSuratKeluarForm('${row[0]}')">✏️ Edit</button>
+            <button class="btn-hapus" onclick="hapusSuratKeluarData('${row[0]}')">🗑️ Hapus</button>
+          </td>
+        </tr>`;
+      }
+      tbody.innerHTML=html;
+    })
+    .withFailureHandler(function(err){
+      showToast(err.message, "error");
+    })
+    .getSuratKeluar(token);
 }
-
-
-
-// ======================================================
-// Badge Status
-// ======================================================
 
 function getBadgeStatusSuratKeluar(status){
-
-    switch(status){
-
-        case "Draft":
-
-            return `<span class="badge badge-secondary">Draft</span>`;
-
-        case "Diproses":
-
-            return `<span class="badge badge-warning">Diproses</span>`;
-
-        case "Dikirim":
-
-            return `<span class="badge badge-info">Dikirim</span>`;
-
-        case "Diterima":
-
-            return `<span class="badge badge-success">Diterima</span>`;
-
-        case "Diarsipkan":
-
-            return `<span class="badge badge-dark">Diarsipkan</span>`;
-
-        default:
-
-            return `<span class="badge">${status}</span>`;
-
-    }
-
+  switch(status){
+    case "Draft": return `<span class="badge badge-secondary">Draft</span>`;
+    case "Diproses": return `<span class="badge badge-warning">Diproses</span>`;
+    case "Dikirim": return `<span class="badge badge-info">Dikirim</span>`;
+    case "Diterima": return `<span class="badge badge-success">Diterima</span>`;
+    case "Diarsipkan": return `<span class="badge badge-dark">Diarsipkan</span>`;
+    default: return `<span class="badge">${status}</span>`;
+  }
 }
-
-
-
-// ======================================================
-// Modal Tambah
-// ======================================================
 
 function showFormSuratKeluar(){
-
-    $("judulModalSuratKeluar").innerText="Tambah Surat Keluar";
-
-    $("suratKeluarId").value="";
-
-    $("nomorSuratKeluar").value="";
-
-    $("tanggalSuratKeluar").value="";
-
-    $("tujuanSurat").value="";
-
-    $("perihalSuratKeluar").value="";
-
-    $("penandatangan").value="";
-
-    $("keteranganSuratKeluar").value="";
-
-    $("statusSuratKeluar").value="Draft";
-
-    $("modalSuratKeluar").style.display="flex";
-
+  $("judulModalSuratKeluar").innerText="Tambah Surat Keluar";
+  $("suratKeluarId").value="";
+  $("fileSuratKeluarExisting").value="";
+  $("nomorSuratKeluar").value="";
+  $("tanggalSuratKeluar").value="";
+  $("tujuanSurat").value="";
+  $("perihalSuratKeluar").value="";
+  $("penandatangan").value="";
+  $("keteranganSuratKeluar").value="";
+  $("statusSuratKeluar").value="Draft";
+  $("fileSuratKeluar").value="";
+  $("infoFileLamaSuratKeluar").innerText="";
+  $("modalSuratKeluar").style.display="flex";
 }
-
-
-
-// ======================================================
-// Modal Edit
-// ======================================================
 
 function editSuratKeluarForm(id){
-
-    const row=
-
-        DATA_SURATKELUAR_TERAKHIR.find(
-
-            r=>r[0].toString()==id.toString()
-
-        );
-
-    if(!row){
-
-        showToast("Data tidak ditemukan.","error");
-
-        return;
-
-    }
-
-    $("judulModalSuratKeluar").innerText="Edit Surat Keluar";
-
-    $("suratKeluarId").value=row[0];
-
-    $("nomorSuratKeluar").value=row[2];
-
-    $("tanggalSuratKeluar").value=formatTanggalUntukInput(row[3]);
-
-    $("tujuanSurat").value=row[4];
-
-    $("perihalSuratKeluar").value=row[5];
-
-    $("penandatangan").value=row[6];
-
-    $("keteranganSuratKeluar").value=row[7];
-
-    $("statusSuratKeluar").value=row[8];
-
-    $("modalSuratKeluar").style.display="flex";
-
+  const row = DATA_SURATKELUAR_TERAKHIR.find(r=>r[0].toString()==id.toString());
+  if(!row){
+    showToast("Data tidak ditemukan.","error");
+    return;
+  }
+  $("judulModalSuratKeluar").innerText="Edit Surat Keluar";
+  $("suratKeluarId").value=row[0];
+  $("fileSuratKeluarExisting").value=row[9] || "";
+  $("nomorSuratKeluar").value=row[2];
+  $("tanggalSuratKeluar").value=row[3]; // sudah format yyyy-MM-dd dari server
+  $("tujuanSurat").value=row[4];
+  $("perihalSuratKeluar").value=row[5];
+  $("penandatangan").value=row[6];
+  $("keteranganSuratKeluar").value=row[7];
+  $("statusSuratKeluar").value=row[8];
+  $("fileSuratKeluar").value="";
+  $("infoFileLamaSuratKeluar").innerText = row[9] ? "File saat ini sudah terlampir. Pilih file baru untuk menggantinya." : "";
+  $("modalSuratKeluar").style.display="flex";
 }
-
-
-
-// ======================================================
-// Tutup Modal
-// ======================================================
 
 function tutupModalSuratKeluar(){
-
-    $("modalSuratKeluar").style.display="none";
-
+  $("modalSuratKeluar").style.display="none";
 }
-
-// ======================================================
-// Simpan Data
-// ======================================================
 
 function simpanSuratKeluar(btn){
+  const token=getToken();
+  if(!token){
+    logout();
+    return;
+  }
 
-    const token=getToken();
+  const id=$("suratKeluarId").value;
+  const nomorSurat=$("nomorSuratKeluar").value.trim();
+  const tanggalSurat=$("tanggalSuratKeluar").value;
+  const tujuan=$("tujuanSurat").value.trim();
+  const perihal=$("perihalSuratKeluar").value.trim();
+  const penandatangan=$("penandatangan").value.trim();
 
-    if(!token){
+  if(nomorSurat==""){
+    showToast("Nomor Surat wajib diisi.","error");
+    $("nomorSuratKeluar").focus();
+    return;
+  }
+  if(tanggalSurat==""){
+    showToast("Tanggal Surat wajib diisi.","error");
+    $("tanggalSuratKeluar").focus();
+    return;
+  }
+  if(tujuan==""){
+    showToast("Tujuan wajib diisi.","error");
+    $("tujuanSurat").focus();
+    return;
+  }
+  if(perihal==""){
+    showToast("Perihal wajib diisi.","error");
+    $("perihalSuratKeluar").focus();
+    return;
+  }
+  if(penandatangan==""){
+    showToast("Penandatangan wajib diisi.","error");
+    $("penandatangan").focus();
+    return;
+  }
 
-        logout();
+  toggleButtonLoading(btn,true);
 
-        return;
+  const fileInput = $("fileSuratKeluar");
+  if(fileInput.files && fileInput.files.length>0){
+    const file = fileInput.files[0];
+    const reader = new FileReader();
 
-    }
+    reader.onload = function(e){
+      const base64Data = e.target.result.split(",")[1];
 
-    const id=$("suratKeluarId").value;
-
-    const data={
-
-        nomorSurat:$("nomorSuratKeluar").value.trim(),
-
-        tanggalSurat:$("tanggalSuratKeluar").value,
-
-        tujuan:$("tujuanSurat").value.trim(),
-
-        perihal:$("perihalSuratKeluar").value.trim(),
-
-        penandatangan:$("penandatangan").value.trim(),
-
-        keterangan:$("keteranganSuratKeluar").value.trim(),
-
-        status:$("statusSuratKeluar").value
-
+      google.script.run
+        .withSuccessHandler(function(fileURL){
+          lanjutkanSimpanSuratKeluar(btn, token, id, fileURL);
+        })
+        .withFailureHandler(function(err){
+          toggleButtonLoading(btn,false,"💾 Simpan");
+          showToast("Gagal upload file: " + err.message, "error");
+        })
+        .uploadFileSuratKeluar(token, base64Data, file.name, file.type);
     };
 
-
-    // ===============================
-    // VALIDASI
-    // ===============================
-
-    if(data.nomorSurat==""){
-
-        showToast("Nomor Surat wajib diisi.","error");
-
-        $("nomorSuratKeluar").focus();
-
-        return;
-
-    }
-
-    if(data.tanggalSurat==""){
-
-        showToast("Tanggal Surat wajib diisi.","error");
-
-        $("tanggalSuratKeluar").focus();
-
-        return;
-
-    }
-
-    if(data.tujuan==""){
-
-        showToast("Tujuan wajib diisi.","error");
-
-        $("tujuanSurat").focus();
-
-        return;
-
-    }
-
-    if(data.perihal==""){
-
-        showToast("Perihal wajib diisi.","error");
-
-        $("perihalSuratKeluar").focus();
-
-        return;
-
-    }
-
-    if(data.penandatangan==""){
-
-        showToast("Penandatangan wajib diisi.","error");
-
-        $("penandatangan").focus();
-
-        return;
-
-    }
-
-
-    toggleButtonLoading(btn,true);
-
-
-    // ===============================
-    // EDIT
-    // ===============================
-
-    if(id){
-
-        google.script.run
-
-        .withSuccessHandler(function(){
-
-            toggleButtonLoading(btn,false,"💾 Simpan");
-
-            showToast(
-
-                "Surat berhasil diperbarui.",
-
-                "success"
-
-            );
-
-            tutupModalSuratKeluar();
-
-            loadSuratKeluar();
-
-            loadDashboard();
-
-        })
-
-        .withFailureHandler(function(err){
-
-            toggleButtonLoading(btn,false,"💾 Simpan");
-
-            showToast(err.message,"error");
-
-        })
-
-        .editSuratKeluar(
-
-            token,
-
-            id,
-
-            data
-
-        );
-
-    }
-
-    // ===============================
-    // TAMBAH
-    // ===============================
-
-    else{
-
-        google.script.run
-
-        .withSuccessHandler(function(){
-
-            toggleButtonLoading(btn,false,"💾 Simpan");
-
-            showToast(
-
-                "Surat berhasil disimpan.",
-
-                "success"
-
-            );
-
-            tutupModalSuratKeluar();
-
-            loadSuratKeluar();
-
-            loadDashboard();
-
-        })
-
-        .withFailureHandler(function(err){
-
-            toggleButtonLoading(btn,false,"💾 Simpan");
-
-            showToast(err.message,"error");
-
-        })
-
-        .tambahSuratKeluar(
-
-            token,
-
-            data
-
-        );
-
-    }
-
+    reader.readAsDataURL(file);
+  } else {
+    const fileURLLama = $("fileSuratKeluarExisting").value;
+    lanjutkanSimpanSuratKeluar(btn, token, id, fileURLLama);
+  }
 }
 
+function lanjutkanSimpanSuratKeluar(btn, token, id, fileURL){
+  const data={
+    nomorSurat:$("nomorSuratKeluar").value.trim(),
+    tanggalSurat:$("tanggalSuratKeluar").value,
+    tujuan:$("tujuanSurat").value.trim(),
+    perihal:$("perihalSuratKeluar").value.trim(),
+    penandatangan:$("penandatangan").value.trim(),
+    keterangan:$("keteranganSuratKeluar").value.trim(),
+    status:$("statusSuratKeluar").value,
+    fileURL: fileURL || ''
+  };
 
-
-// ======================================================
-// Hapus Data
-// ======================================================
+  if(id){
+    google.script.run
+      .withSuccessHandler(function(){
+        toggleButtonLoading(btn,false,"💾 Simpan");
+        showToast("Surat berhasil diperbarui.","success");
+        tutupModalSuratKeluar();
+        loadSuratKeluar();
+        loadDashboard();
+      })
+      .withFailureHandler(function(err){
+        toggleButtonLoading(btn,false,"💾 Simpan");
+        showToast(err.message,"error");
+      })
+      .editSuratKeluar(token, id, data);
+  } else {
+    google.script.run
+      .withSuccessHandler(function(){
+        toggleButtonLoading(btn,false,"💾 Simpan");
+        showToast("Surat berhasil disimpan.","success");
+        tutupModalSuratKeluar();
+        loadSuratKeluar();
+        loadDashboard();
+      })
+      .withFailureHandler(function(err){
+        toggleButtonLoading(btn,false,"💾 Simpan");
+        showToast(err.message,"error");
+      })
+      .tambahSuratKeluar(token, data);
+  }
+}
 
 function hapusSuratKeluarData(id){
-
-    if(
-
-        !confirm(
-
-            "Yakin ingin menghapus Surat Keluar ini?"
-
-        )
-
-    ){
-
-        return;
-
-    }
-
-    const token=getToken();
-
-    if(!token){
-
-        logout();
-
-        return;
-
-    }
-
-    google.script.run
-
+  if(!confirm("Yakin ingin menghapus Surat Keluar ini?")){
+    return;
+  }
+  const token=getToken();
+  if(!token){
+    logout();
+    return;
+  }
+  google.script.run
     .withSuccessHandler(function(){
-
-        showToast(
-
-            "Data berhasil dihapus.",
-
-            "success"
-
-        );
-
-        loadSuratKeluar();
-
-        loadDashboard();
-
+      showToast("Data berhasil dihapus.","success");
+      loadSuratKeluar();
+      loadDashboard();
     })
-
     .withFailureHandler(function(err){
-
-        showToast(err.message,"error");
-
+      showToast(err.message,"error");
     })
-
-    .hapusSuratKeluar(
-
-        token,
-
-        id
-
-    );
-
+    .hapusSuratKeluar(token, id);
 }
-
-
-
-// ======================================================
-// SEARCH
-// ======================================================
 
 function cariSuratKeluar(){
-
-    const keyword=
-
-        $("cariSuratKeluar")
-
-        .value
-
-        .toLowerCase();
-
-    const rows=
-
-        document.querySelectorAll(
-
-            "#tblSuratKeluar tbody tr"
-
-        );
-
-    rows.forEach(function(row){
-
-        row.style.display=
-
-            row.innerText
-
-            .toLowerCase()
-
-            .includes(keyword)
-
-            ? ""
-
-            : "none";
-
-    });
-
+  const keyword=$("cariSuratKeluar").value.toLowerCase();
+  document.querySelectorAll("#tblSuratKeluar tbody tr").forEach(function(row){
+    row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
+  });
 }
 
+window.addEventListener("click", function(e){
+  const modal=$("modalSuratKeluar");
+  if(modal && e.target===modal){
+    tutupModalSuratKeluar();
+  }
+});
 
-
-// ======================================================
-// Tutup Modal Saat Klik Background
-// ======================================================
-
-window.addEventListener(
-
-    "click",
-
-    function(e){
-
-        const modal=$("modalSuratKeluar");
-
-        if(
-
-            modal &&
-
-            e.target===modal
-
-        ){
-
-            tutupModalSuratKeluar();
-
-        }
-
+document.addEventListener("keydown", function(e){
+  if(e.key==="Escape"){
+    const modal=$("modalSuratKeluar");
+    if(modal && modal.style.display==="flex"){
+      tutupModalSuratKeluar();
     }
+  }
+});
 
-);
-
-
-
-// ======================================================
-// ESC = Tutup Modal
-// ======================================================
-
-document.addEventListener(
-
-    "keydown",
-
-    function(e){
-
-        if(
-
-            e.key==="Escape"
-
-        ){
-
-            const modal=$("modalSuratKeluar");
-
-            if(
-
-                modal &&
-
-                modal.style.display==="flex"
-
-            ){
-
-                tutupModalSuratKeluar();
-
-            }
-
-        }
-
-    }
-
-);
-
-
-
-// ======================================================
-// ENTER = SIMPAN
-// ======================================================
-
-document.addEventListener(
-
-    "keydown",
-
-    function(e){
-
-        const modal=$("modalSuratKeluar");
-
-        if(
-
-            !modal ||
-
-            modal.style.display!=="flex"
-
-        ){
-
-            return;
-
-        }
-
-        if(e.key==="Enter"){
-
-            e.preventDefault();
-
-            $("btnSimpanSuratKeluar").click();
-
-        }
-
-    }
-
-);
+document.addEventListener("keydown", function(e){
+  const modal=$("modalSuratKeluar");
+  if(!modal || modal.style.display!=="flex"){
+    return;
+  }
+  if(e.key==="Enter"){
+    e.preventDefault();
+    $("btnSimpanSuratKeluar").click();
+  }
+});
 
 </script>
