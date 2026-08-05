@@ -1,0 +1,104 @@
+<div class="dashboard-content">
+
+    <!-- Statistik -->
+    <div class="cards">
+
+        <div class="card">
+            <div class="icon">👥</div>
+            <div class="info">
+                <h3 id="totalPenduduk">0</h3>
+                <p>Total Penduduk</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="icon">🏠</div>
+            <div class="info">
+                <h3 id="totalKK">0</h3>
+                <p>Kartu Keluarga</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="icon">📥</div>
+            <div class="info">
+                <h3 id="totalSuratMasuk">0</h3>
+                <p>Surat Masuk</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="icon">📤</div>
+            <div class="info">
+                <h3 id="totalSuratKeluar">0</h3>
+                <p>Surat Keluar</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="icon">📝</div>
+            <div class="info">
+                <h3 id="totalPelayanan">0</h3>
+                <p>Pelayanan Surat</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="icon">📢</div>
+            <div class="info">
+                <h3 id="totalPengaduan">0</h3>
+                <p>Pengaduan</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="icon">📅</div>
+            <div class="info">
+                <h3 id="totalAgenda">0</h3>
+                <p>Agenda</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="icon">🏢</div>
+            <div class="info">
+                <h3 id="totalInventaris">0</h3>
+                <p>Inventaris</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Selamat Datang -->
+    <div class="welcome-box">
+
+        <h2>Selamat Datang di Sistem Administrasi Desa</h2>
+
+        <p>
+            Gunakan menu di sebelah kiri untuk mengelola data administrasi desa.
+        </p>
+
+    </div>
+
+    <!-- Aktivitas Terbaru -->
+    <div class="activity-box">
+
+        <h3>Aktivitas Terbaru</h3>
+
+        <ul id="aktivitasTerbaru">
+
+            <li>Belum ada aktivitas.</li>
+
+        </ul>
+
+    </div>
+
+</div>
+
+<script>
+
+loadDashboard();
+
+loadAktivitasTerbaru();
+
+</script>

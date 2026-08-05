@@ -70,67 +70,15 @@
       <span id="tanggal"></span>
     </header>
 
+    <!--
+      PENTING: bagian ini TIDAK LAGI berisi kartu statistik secara manual.
+      Isinya dipanggil langsung dari DashboardContent.html lewat include(),
+      supaya cuma ada SATU sumber markup yang dipakai baik saat pertama
+      login maupun saat klik ulang menu Dashboard. Kalau nanti mau ubah
+      desain kartu, cukup edit DashboardContent.html saja.
+    -->
     <div id="content">
-
-      <div class="cards">
-
-        <div class="card">
-          <h3>👥 Penduduk</h3>
-          <h2 id="totalPenduduk">0</h2>
-        </div>
-
-        <div class="card">
-          <h3>🏠 KK</h3>
-          <h2 id="totalKK">0</h2>
-        </div>
-
-        <div class="card">
-          <h3>📥 Surat Masuk</h3>
-          <h2 id="totalSuratMasuk">0</h2>
-        </div>
-
-        <div class="card">
-          <h3>📤 Surat Keluar</h3>
-          <h2 id="totalSuratKeluar">0</h2>
-        </div>
-
-        <div class="card">
-          <h3>📢 Pengaduan</h3>
-          <h2 id="totalPengaduan">0</h2>
-        </div>
-
-        <div class="card">
-          <h3>📅 Agenda</h3>
-          <h2 id="totalAgenda">0</h2>
-        </div>
-
-      </div>
-
-      <div class="welcome">
-
-        <hr>
-
-<h3>📢 Aktivitas Terbaru</h3>
-
-<ul id="aktivitasTerbaru">
-    <li>Belum ada aktivitas.</li>
-</ul>
-
-<hr>
-
-<h3>🔔 Notifikasi</h3>
-
-<ul id="notifikasi">
-    <li>Tidak ada notifikasi.</li>
-</ul>
-
-        <h2>📅 Agenda Hari Ini</h2>
-        <ul>
-          <li>Posyandu</li>
-          <li>Musyawarah Desa</li>
-        </ul>
-      </div>
-
+      <?!= include('DashboardContent'); ?>
     </div>
 
   </main>

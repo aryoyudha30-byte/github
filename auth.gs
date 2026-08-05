@@ -2,13 +2,13 @@ function checkLogin(username, password) {
   try {
     const users = getSheetDataAsJson('Users');
     const inputHash = hashPassword(password); // Enkripsi password inputan
- 
+
     // Cari user yang cocok username DAN hash password-nya (WAJIB hash, tidak ada pengecualian polos)
     const foundUser = users.find(u =>
       u.Username.toString().trim() === username.toString().trim() &&
       u.Password.toString().trim() === inputHash
     );
- 
+
     if (foundUser) {
       // Buat token sesi acak, simpan di cache server selama 6 jam
       const token = Utilities.getUuid();
@@ -17,9 +17,9 @@ function checkLogin(username, password) {
         nama: foundUser.Nama,
         role: foundUser.Role
       }), 21600); // 21600 detik = 6 jam
- 
+
       logActivity(foundUser.Username, 'LOGIN', 'User berhasil login ke sistem');
- 
+
       return {
         success: true,
         message: 'Login Berhasil!',
@@ -43,7 +43,7 @@ function checkLogin(username, password) {
     };
   }
 }
- 
+
 /**
  * Memeriksa apakah token sesi masih valid. Dipanggil oleh SEMUA fungsi
  * yang membaca/mengubah data (Penduduk, KK, Surat, dll) sebelum
@@ -54,7 +54,7 @@ function verifySession(token) {
   const data = CacheService.getScriptCache().get(token);
   return data ? JSON.parse(data) : null;
 }
- 
+
 // Log Aktivitas Akses User untuk Audit Trail Keamanan
 function logActivity(username, aksi, detail) {
   try {
@@ -63,9 +63,13 @@ function logActivity(username, aksi, detail) {
       sheet.appendRow([new Date(), username, aksi, detail]);
     }
   } catch(e) {
-  
+    // Silently fail agar tidak mengganggu alur login
   }
-  function getAktivitasTerbaru(token) {
+}
+
+// PENTING: fungsi ini SEKARANG BERDIRI SENDIRI (sejajar dengan logActivity),
+// bukan lagi bersarang di dalamnya -- supaya bisa dipanggil dari google.script.run.
+function getAktivitasTerbaru(token) {
   const session = verifySession(token);
   if (!session) {
     throw new Error("Sesi login tidak valid. Silakan login ulang.");
@@ -86,6 +90,4 @@ function logActivity(username, aksi, detail) {
     aksi: r[2],
     detail: r[3]
   }));
-}
-
 }

@@ -138,6 +138,21 @@ function logout(){
 // DASHBOARD
 // ==========================================
 
+function showDashboard(){
+  setActiveMenu("menuDashboard");
+
+  google.script.run
+    .withSuccessHandler(function(html){
+      $("content").innerHTML = html;
+      loadDashboard();
+      loadAktivitasTerbaru();
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal membuka Dashboard: " + err.message, "error");
+    })
+    .getDashboardPage();
+}
+
 function loadDashboard(){
   google.script.run
     .withSuccessHandler(function(data){
@@ -1065,4 +1080,516 @@ document.addEventListener("keydown", function(e){
   }
 });
 
+//=========================================
+// PELAYANAN SURAT
+//=========================================
+
+function showFormPelayanan(){
+
+    document.getElementById("judulModalPelayanan").innerHTML =
+        "Tambah Permohonan Surat";
+
+    document.getElementById("pelayananId").value = "";
+
+    document.getElementById("nikPelayanan").value = "";
+
+    document.getElementById("namaPelayanan").value = "";
+
+    document.getElementById("jenisSurat").value = "";
+
+    document.getElementById("keperluan").value = "";
+
+    document.getElementById("tanggalPelayanan").value =
+        new Date().toISOString().split("T")[0];
+
+    document.getElementById("keteranganPelayanan").value = "";
+
+    document.getElementById("statusPelayanan").value = "Menunggu";
+
+    document.getElementById("filePelayanan").value = "";
+
+    document.getElementById("filePelayananExisting").value = "";
+
+    document.getElementById("infoFilePelayanan").innerHTML = "";
+
+    document.getElementById("modalPelayanan").style.display="flex";
+
+}
+
+function tutupModalPelayanan(){
+
+    document.getElementById("modalPelayanan").style.display="none";
+
+}
+
+//=========================================
+// LOAD DATA
+//=========================================
+
+function loadPelayanan(){
+
+    google.script.run
+    .withSuccessHandler(renderPelayanan)
+    .withFailureHandler(function(err){
+
+        alert(err.message);
+
+    })
+    .getPelayananSurat(token);
+
+}
+
+function renderPelayanan(data){
+
+    const tbody =
+        document.querySelector("#tblPelayanan tbody");
+
+    tbody.innerHTML="";
+
+    for(let i=1;i<data.length;i++){
+
+        let row=data[i];
+
+        tbody.innerHTML +=`
+
+<tr>
+
+<td>${row[1]}</td>
+
+<td>${row[5]}</td>
+
+<td>${row[2]}</td>
+
+<td>${row[3]}</td>
+
+<td>${row[4]}</td>
+
+<td>${row[8]}</td>
+
+<td>
+
+${row[9]
+? `<a href="${row[9]}" target="_blank">Lihat</a>`
+: "-"}
+
+</td>
+
+<td>
+
+<button onclick="editPelayanan(${row[0]})">
+✏️
+</button>
+
+<button onclick="hapusPelayanan(${row[0]})">
+🗑️
+</button>
+
+</td>
+
+</tr>
+
+`;
+
+    }
+
+}
+
+//=========================================
+// SIMPAN DATA PELAYANAN
+//=========================================
+
+function simpanPelayanan(btn){
+
+    btn.disabled = true;
+    btn.innerHTML = "Menyimpan...";
+
+    const id = document.getElementById("pelayananId").value;
+
+    const data = {
+
+        nik : document.getElementById("nikPelayanan").value.trim(),
+
+        nama : document.getElementById("namaPelayanan").value.trim(),
+
+        jenisSurat : document.getElementById("jenisSurat").value,
+
+        keperluan : document.getElementById("keperluan").value,
+
+        tanggal : document.getElementById("tanggalPelayanan").value,
+
+        status : document.getElementById("statusPelayanan").value,
+
+        nohp : "",
+
+        petugas : "",
+
+        keterangan :
+            document.getElementById("keteranganPelayanan").value,
+
+        fileURL :
+            document.getElementById("filePelayananExisting").value
+
+    };
+
+    const fileInput =
+        document.getElementById("filePelayanan");
+
+    //====================================
+    // TANPA FILE
+    //====================================
+
+    if(fileInput.files.length===0){
+
+        simpanPelayananServer(id,data,btn);
+
+        return;
+
+    }
+
+    //====================================
+    // DENGAN FILE
+    //====================================
+
+    const file=fileInput.files[0];
+
+    const reader=new FileReader();
+
+    reader.onload=function(e){
+
+        const base64=e.target.result.split(",")[1];
+
+        google.script.run
+
+        .withSuccessHandler(function(url){
+
+            data.fileURL=url;
+
+            simpanPelayananServer(id,data,btn);
+
+        })
+
+        .withFailureHandler(function(err){
+
+            alert(err.message);
+
+            btn.disabled=false;
+            btn.innerHTML="💾 Simpan";
+
+        })
+
+        .uploadPersyaratanPelayanan(
+
+            token,
+
+            base64,
+
+            file.name,
+
+            file.type
+
+        );
+
+    };
+
+    reader.readAsDataURL(file);
+
+}
+
+//=========================================
+// SIMPAN KE SERVER
+//=========================================
+
+function simpanPelayananServer(id,data,btn){
+
+    if(id==""){
+
+        google.script.run
+
+        .withSuccessHandler(function(){
+
+            alert("Data berhasil disimpan.");
+
+            tutupModalPelayanan();
+
+            loadPelayanan();
+
+            btn.disabled=false;
+            btn.innerHTML="💾 Simpan";
+
+        })
+
+        .withFailureHandler(function(err){
+
+            alert(err.message);
+
+            btn.disabled=false;
+            btn.innerHTML="💾 Simpan";
+
+        })
+
+        .tambahPelayananSurat(token,data);
+
+    }
+
+    else{
+
+        google.script.run
+
+        .withSuccessHandler(function(){
+
+            alert("Data berhasil diupdate.");
+
+            tutupModalPelayanan();
+
+            loadPelayanan();
+
+            btn.disabled=false;
+            btn.innerHTML="💾 Simpan";
+
+        })
+
+        .withFailureHandler(function(err){
+
+            alert(err.message);
+
+            btn.disabled=false;
+            btn.innerHTML="💾 Simpan";
+
+        })
+
+        .editPelayananSurat(
+
+            token,
+
+            id,
+
+            data
+
+        );
+
+    }
+
+}
+
+//=========================================
+// EDIT PELAYANAN SURAT
+//=========================================
+
+function editPelayanan(id){
+
+    google.script.run
+
+    .withSuccessHandler(function(row){
+
+        if(!row){
+
+            alert("Data tidak ditemukan.");
+
+            return;
+
+        }
+
+        document.getElementById("judulModalPelayanan").innerHTML =
+            "Edit Pelayanan Surat";
+
+        document.getElementById("pelayananId").value =
+            row[0];
+
+        document.getElementById("nikPelayanan").value =
+            row[2];
+
+        document.getElementById("namaPelayanan").value =
+            row[3];
+
+        document.getElementById("jenisSurat").value =
+            row[4];
+
+        document.getElementById("tanggalPelayanan").value =
+            formatTanggalInput(row[5]);
+
+        document.getElementById("keperluan").value =
+            row[7];
+
+        document.getElementById("statusPelayanan").value =
+            row[8];
+
+        document.getElementById("filePelayananExisting").value =
+            row[9];
+
+        document.getElementById("keteranganPelayanan").value =
+            row[12];
+
+        if(row[9]){
+
+            document.getElementById("infoFilePelayanan").innerHTML =
+                '<a href="'+row[9]+'" target="_blank">📄 Lihat Lampiran</a>';
+
+        }else{
+
+            document.getElementById("infoFilePelayanan").innerHTML = "";
+
+        }
+
+        document.getElementById("modalPelayanan").style.display="flex";
+
+    })
+
+    .withFailureHandler(function(err){
+
+        alert(err.message);
+
+    })
+
+    .getPelayananSuratById(token,id);
+
+}
+
+//=========================================
+// FORMAT TANGGAL UNTUK INPUT TYPE DATE
+//=========================================
+
+function formatTanggalInput(tanggal){
+
+    if(!tanggal) return "";
+
+    if(tanggal instanceof Date){
+
+        return tanggal.toISOString().split("T")[0];
+
+    }
+
+    if(tanggal.indexOf("/")>-1){
+
+        const p=tanggal.split("/");
+
+        return p[2]+"-"+p[1]+"-"+p[0];
+
+    }
+
+    return tanggal;
+
+}
+
+//=========================================
+// HAPUS PELAYANAN SURAT
+//=========================================
+
+function hapusPelayanan(id){
+
+    if(!confirm("Yakin ingin menghapus data ini?")){
+
+        return;
+
+    }
+
+    google.script.run
+
+    .withSuccessHandler(function(){
+
+        alert("Data berhasil dihapus.");
+
+        loadPelayanan();
+
+    })
+
+    .withFailureHandler(function(err){
+
+        alert(err.message);
+
+    })
+
+    .hapusPelayananSurat(
+
+        token,
+
+        id
+
+    );
+
+}
+
+//=========================================
+// CARI PELAYANAN SURAT
+//=========================================
+
+function cariPelayanan(){
+
+    const keyword =
+        document.getElementById("cariPelayanan")
+        .value
+        .toLowerCase();
+
+    const tbody =
+        document.querySelector("#tblPelayanan tbody");
+
+    const rows =
+        tbody.getElementsByTagName("tr");
+
+    for(let i=0;i<rows.length;i++){
+
+        const text =
+            rows[i].innerText.toLowerCase();
+
+        rows[i].style.display =
+            text.indexOf(keyword)>-1
+            ? ""
+            : "none";
+
+    }
+
+}
+
+//=========================================
+// TAMPILKAN HALAMAN PELAYANAN SURAT
+//=========================================
+
+function showPelayanan(){
+
+    setMenuActive("menuPelayanan");
+
+    google.script.run
+
+    .withSuccessHandler(function(html){
+
+        document.getElementById("content").innerHTML =
+            html;
+
+        loadPelayanan();
+
+    })
+
+    .withFailureHandler(function(err){
+
+        alert(err.message);
+
+    })
+
+    .getPelayananSuratPage();
+
+}
+
+//=========================================
+// MENU ACTIVE
+//=========================================
+
+function setMenuActive(id){
+
+    document
+    .querySelectorAll(".sidebar li")
+    .forEach(function(item){
+
+        item.classList.remove("active");
+
+    });
+
+    const menu =
+        document.getElementById(id);
+
+    if(menu){
+
+        menu.classList.add("active");
+
+    }
+
+}
 </script>

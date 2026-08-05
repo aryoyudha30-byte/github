@@ -1,3 +1,19 @@
+// ======================================
+// HALAMAN DASHBOARD (CONTENT ONLY)
+// Dipanggil saat klik ulang menu Dashboard di sidebar.
+// PENTING: harus "DashboardContent" (cuma kartu+aktivitas),
+// BUKAN "Dashboard" (itu layout lengkap dengan sidebar,
+// kalau salah ini bikin sidebar dobel).
+// ======================================
+function getDashboardPage() {
+  return HtmlService
+    .createHtmlOutputFromFile("DashboardContent")
+    .getContent();
+}
+
+// ======================================
+// STATISTIK DASHBOARD
+// ======================================
 function getDashboardStats() {
   return {
     penduduk: getJumlahData("Penduduk"),
