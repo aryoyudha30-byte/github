@@ -1127,16 +1127,12 @@ function tutupModalPelayanan(){
 //=========================================
 
 function loadPelayanan(){
-
+    const token = getToken(); // <-- ambil lewat fungsi global
+    if(!token) return logout();
     google.script.run
     .withSuccessHandler(renderPelayanan)
-    .withFailureHandler(function(err){
-
-        alert(err.message);
-
-    })
+    .withFailureHandler(err => alert("Gagal: " + err.message))
     .getPelayananSurat(token);
-
 }
 
 function renderPelayanan(data){
@@ -1199,6 +1195,8 @@ ${row[9]
 //=========================================
 
 function simpanPelayanan(btn){
+    const token = getToken(); 
+    if(!token) return logout(); 
 
     btn.disabled = true;
     btn.innerHTML = "Menyimpan...";
