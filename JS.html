@@ -1080,514 +1080,238 @@ document.addEventListener("keydown", function(e){
   }
 });
 
-//=========================================
-// PELAYANAN SURAT
-//=========================================
+// ======================================
+// MODUL PELAYANAN SURAT (tambahkan ke JS.html)
+// ======================================
 
-function showFormPelayanan(){
+let DATA_PELAYANAN_TERAKHIR = [];
 
-    document.getElementById("judulModalPelayanan").innerHTML =
-        "Tambah Permohonan Surat";
-
-    document.getElementById("pelayananId").value = "";
-
-    document.getElementById("nikPelayanan").value = "";
-
-    document.getElementById("namaPelayanan").value = "";
-
-    document.getElementById("jenisSurat").value = "";
-
-    document.getElementById("keperluan").value = "";
-
-    document.getElementById("tanggalPelayanan").value =
-        new Date().toISOString().split("T")[0];
-
-    document.getElementById("keteranganPelayanan").value = "";
-
-    document.getElementById("statusPelayanan").value = "Menunggu";
-
-    document.getElementById("filePelayanan").value = "";
-
-    document.getElementById("filePelayananExisting").value = "";
-
-    document.getElementById("infoFilePelayanan").innerHTML = "";
-
-    document.getElementById("modalPelayanan").style.display="flex";
-
+function showPelayanan(){
+  setActiveMenu("menuPelayanan");
+  google.script.run
+    .withSuccessHandler(function(html){
+      $("content").innerHTML = html;
+      loadPelayanan();
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal membuka Pelayanan Surat: " + err.message, "error");
+    })
+    .getPelayananSuratPage();
 }
-
-function tutupModalPelayanan(){
-
-    document.getElementById("modalPelayanan").style.display="none";
-
-}
-
-//=========================================
-// LOAD DATA
-//=========================================
 
 function loadPelayanan(){
-    const token = getToken(); // <-- ambil lewat fungsi global
-    if(!token) return logout();
-    google.script.run
-    .withSuccessHandler(renderPelayanan)
-    .withFailureHandler(err => alert("Gagal: " + err.message))
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis. Silakan login kembali.", "error");
+    logout();
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function(data){
+      DATA_PELAYANAN_TERAKHIR = data;
+      const tbody = document.querySelector("#tblPelayanan tbody");
+      if (!tbody) return;
+
+      if (!data || data.length <= 1) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Belum ada data.</td></tr>';
+        return;
+      }
+
+      let html = "";
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        // row: [ID,NoPermohonan,NIK,Nama,JenisSurat,Tanggal,TanggalSelesai,Keperluan,Status,File,Petugas,NoHP,Keterangan]
+        const linkFile = row[9]
+          ? `<a href="${row[9]}" target="_blank">📎 Lihat</a>`
+          : "-";
+
+        html += `
+          <tr>
+            <td>${row[1] || ''}</td>
+            <td>${row[5] || ''}</td>
+            <td>${row[2] || ''}</td>
+            <td>${row[3] || ''}</td>
+            <td>${row[4] || ''}</td>
+            <td>${row[8] || ''}</td>
+            <td>${linkFile}</td>
+            <td class="aksi">
+              <button class="btn-edit" onclick="editPelayanan('${row[0]}')">✏️ Edit</button>
+              <button class="btn-hapus" onclick="hapusPelayanan('${row[0]}')">🗑️ Hapus</button>
+            </td>
+          </tr>`;
+      }
+      tbody.innerHTML = html;
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal memuat data Pelayanan: " + err.message, "error");
+    })
     .getPelayananSurat(token);
 }
 
-function renderPelayanan(data){
-
-    const tbody =
-        document.querySelector("#tblPelayanan tbody");
-
-    tbody.innerHTML="";
-
-    for(let i=1;i<data.length;i++){
-
-        let row=data[i];
-
-        tbody.innerHTML +=`
-
-<tr>
-
-<td>${row[1]}</td>
-
-<td>${row[5]}</td>
-
-<td>${row[2]}</td>
-
-<td>${row[3]}</td>
-
-<td>${row[4]}</td>
-
-<td>${row[8]}</td>
-
-<td>
-
-${row[9]
-? `<a href="${row[9]}" target="_blank">Lihat</a>`
-: "-"}
-
-</td>
-
-<td>
-
-<button onclick="editPelayanan(${row[0]})">
-✏️
-</button>
-
-<button onclick="hapusPelayanan(${row[0]})">
-🗑️
-</button>
-
-</td>
-
-</tr>
-
-`;
-
-    }
-
+function showFormPelayanan(){
+  $("judulModalPelayanan").innerText = "Tambah Permohonan";
+  $("pelayananId").value = "";
+  $("filePelayananExisting").value = "";
+  $("nikPelayanan").value = "";
+  $("namaPelayanan").value = "";
+  $("jenisSurat").value = "Surat Domisili";
+  $("keperluan").value = "";
+  $("tanggalPelayanan").value = "";
+  $("keteranganPelayanan").value = "";
+  $("statusPelayanan").value = "Menunggu";
+  $("filePelayanan").value = "";
+  $("infoFilePelayanan").innerText = "";
+  $("modalPelayanan").style.display = "flex";
 }
 
-//=========================================
-// SIMPAN DATA PELAYANAN
-//=========================================
+function editPelayanan(id){
+  const row = DATA_PELAYANAN_TERAKHIR.find(r => r[0].toString() === id.toString());
+  if (!row) {
+    showToast("Data tidak ditemukan, coba muat ulang halaman.", "error");
+    return;
+  }
+  $("judulModalPelayanan").innerText = "Edit Permohonan";
+  $("pelayananId").value = row[0];
+  $("filePelayananExisting").value = row[9] || "";
+  $("nikPelayanan").value = row[2];
+  $("namaPelayanan").value = row[3];
+  $("jenisSurat").value = row[4];
+  $("keperluan").value = row[7];
+  $("tanggalPelayanan").value = formatTanggalUntukInput(row[5]);
+  $("keteranganPelayanan").value = row[12];
+  $("statusPelayanan").value = row[8];
+  $("filePelayanan").value = "";
+  $("infoFilePelayanan").innerText = row[9] ? "File saat ini sudah terlampir. Pilih file baru untuk menggantinya." : "";
+  $("modalPelayanan").style.display = "flex";
+}
+
+function tutupModalPelayanan(){
+  $("modalPelayanan").style.display = "none";
+}
 
 function simpanPelayanan(btn){
-    const token = getToken(); 
-    if(!token) return logout(); 
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis. Silakan login kembali.", "error");
+    logout();
+    return;
+  }
 
-    btn.disabled = true;
-    btn.innerHTML = "Menyimpan...";
+  const nik = $("nikPelayanan").value.trim();
+  const nama = $("namaPelayanan").value.trim();
+  const jenisSurat = $("jenisSurat").value;
 
-    const id = document.getElementById("pelayananId").value;
+  if (!nik) {
+    showToast("NIK wajib diisi!", "error");
+    return;
+  }
+  if (!nama) {
+    showToast("Nama wajib diisi!", "error");
+    return;
+  }
+  if (!jenisSurat) {
+    showToast("Jenis Surat wajib dipilih!", "error");
+    return;
+  }
 
-    const data = {
+  toggleButtonLoading(btn, true);
 
-        nik : document.getElementById("nikPelayanan").value.trim(),
+  const fileInput = $("filePelayanan");
+  if (fileInput.files && fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    const reader = new FileReader();
 
-        nama : document.getElementById("namaPelayanan").value.trim(),
+    reader.onload = function(e){
+      const base64Data = e.target.result.split(",")[1];
 
-        jenisSurat : document.getElementById("jenisSurat").value,
-
-        keperluan : document.getElementById("keperluan").value,
-
-        tanggal : document.getElementById("tanggalPelayanan").value,
-
-        status : document.getElementById("statusPelayanan").value,
-
-        nohp : "",
-
-        petugas : "",
-
-        keterangan :
-            document.getElementById("keteranganPelayanan").value,
-
-        fileURL :
-            document.getElementById("filePelayananExisting").value
-
-    };
-
-    const fileInput =
-        document.getElementById("filePelayanan");
-
-    //====================================
-    // TANPA FILE
-    //====================================
-
-    if(fileInput.files.length===0){
-
-        simpanPelayananServer(id,data,btn);
-
-        return;
-
-    }
-
-    //====================================
-    // DENGAN FILE
-    //====================================
-
-    const file=fileInput.files[0];
-
-    const reader=new FileReader();
-
-    reader.onload=function(e){
-
-        const base64=e.target.result.split(",")[1];
-
-        google.script.run
-
-        .withSuccessHandler(function(url){
-
-            data.fileURL=url;
-
-            simpanPelayananServer(id,data,btn);
-
+      google.script.run
+        .withSuccessHandler(function(fileURL){
+          lanjutkanSimpanPelayanan(btn, token, fileURL);
         })
-
         .withFailureHandler(function(err){
-
-            alert(err.message);
-
-            btn.disabled=false;
-            btn.innerHTML="💾 Simpan";
-
+          toggleButtonLoading(btn, false, "💾 Simpan");
+          showToast("Gagal upload file: " + err.message, "error");
         })
-
-        .uploadPersyaratanPelayanan(
-
-            token,
-
-            base64,
-
-            file.name,
-
-            file.type
-
-        );
-
+        .uploadFilePelayanan(token, base64Data, file.name, file.type);
     };
 
     reader.readAsDataURL(file);
-
+  } else {
+    const fileURLLama = $("filePelayananExisting").value;
+    lanjutkanSimpanPelayanan(btn, token, fileURLLama);
+  }
 }
 
-//=========================================
-// SIMPAN KE SERVER
-//=========================================
+function lanjutkanSimpanPelayanan(btn, token, fileURL){
+  const id = $("pelayananId").value;
+  const data = {
+    nik: $("nikPelayanan").value.trim(),
+    nama: $("namaPelayanan").value.trim(),
+    jenisSurat: $("jenisSurat").value,
+    keperluan: $("keperluan").value.trim(),
+    tanggal: $("tanggalPelayanan").value,
+    keterangan: $("keteranganPelayanan").value.trim(),
+    status: $("statusPelayanan").value,
+    fileURL: fileURL || ''
+  };
 
-function simpanPelayananServer(id,data,btn){
-
-    if(id==""){
-
-        google.script.run
-
-        .withSuccessHandler(function(){
-
-            alert("Data berhasil disimpan.");
-
-            tutupModalPelayanan();
-
-            loadPelayanan();
-
-            btn.disabled=false;
-            btn.innerHTML="💾 Simpan";
-
-        })
-
-        .withFailureHandler(function(err){
-
-            alert(err.message);
-
-            btn.disabled=false;
-            btn.innerHTML="💾 Simpan";
-
-        })
-
-        .tambahPelayananSurat(token,data);
-
-    }
-
-    else{
-
-        google.script.run
-
-        .withSuccessHandler(function(){
-
-            alert("Data berhasil diupdate.");
-
-            tutupModalPelayanan();
-
-            loadPelayanan();
-
-            btn.disabled=false;
-            btn.innerHTML="💾 Simpan";
-
-        })
-
-        .withFailureHandler(function(err){
-
-            alert(err.message);
-
-            btn.disabled=false;
-            btn.innerHTML="💾 Simpan";
-
-        })
-
-        .editPelayananSurat(
-
-            token,
-
-            id,
-
-            data
-
-        );
-
-    }
-
-}
-
-//=========================================
-// EDIT PELAYANAN SURAT
-//=========================================
-
-function editPelayanan(id){
-
+  if (id) {
     google.script.run
-
-    .withSuccessHandler(function(row){
-
-        if(!row){
-
-            alert("Data tidak ditemukan.");
-
-            return;
-
-        }
-
-        document.getElementById("judulModalPelayanan").innerHTML =
-            "Edit Pelayanan Surat";
-
-        document.getElementById("pelayananId").value =
-            row[0];
-
-        document.getElementById("nikPelayanan").value =
-            row[2];
-
-        document.getElementById("namaPelayanan").value =
-            row[3];
-
-        document.getElementById("jenisSurat").value =
-            row[4];
-
-        document.getElementById("tanggalPelayanan").value =
-            formatTanggalInput(row[5]);
-
-        document.getElementById("keperluan").value =
-            row[7];
-
-        document.getElementById("statusPelayanan").value =
-            row[8];
-
-        document.getElementById("filePelayananExisting").value =
-            row[9];
-
-        document.getElementById("keteranganPelayanan").value =
-            row[12];
-
-        if(row[9]){
-
-            document.getElementById("infoFilePelayanan").innerHTML =
-                '<a href="'+row[9]+'" target="_blank">📄 Lihat Lampiran</a>';
-
-        }else{
-
-            document.getElementById("infoFilePelayanan").innerHTML = "";
-
-        }
-
-        document.getElementById("modalPelayanan").style.display="flex";
-
-    })
-
-    .withFailureHandler(function(err){
-
-        alert(err.message);
-
-    })
-
-    .getPelayananSuratById(token,id);
-
+      .withSuccessHandler(function(){
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Data berhasil diperbarui!", "success");
+        tutupModalPelayanan();
+        loadPelayanan();
+        loadDashboard();
+      })
+      .withFailureHandler(function(err){
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal memperbarui: " + err.message, "error");
+      })
+      .editPelayananSurat(token, id, data);
+  } else {
+    google.script.run
+      .withSuccessHandler(function(){
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Data berhasil disimpan!", "success");
+        tutupModalPelayanan();
+        loadPelayanan();
+        loadDashboard();
+      })
+      .withFailureHandler(function(err){
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal menyimpan: " + err.message, "error");
+      })
+      .tambahPelayananSurat(token, data);
+  }
 }
-
-//=========================================
-// FORMAT TANGGAL UNTUK INPUT TYPE DATE
-//=========================================
-
-function formatTanggalInput(tanggal){
-
-    if(!tanggal) return "";
-
-    if(tanggal instanceof Date){
-
-        return tanggal.toISOString().split("T")[0];
-
-    }
-
-    if(tanggal.indexOf("/")>-1){
-
-        const p=tanggal.split("/");
-
-        return p[2]+"-"+p[1]+"-"+p[0];
-
-    }
-
-    return tanggal;
-
-}
-
-//=========================================
-// HAPUS PELAYANAN SURAT
-//=========================================
 
 function hapusPelayanan(id){
+  if (!confirm("Yakin ingin menghapus data ini?")) return;
+  const token = getToken();
+  if (!token) {
+    logout();
+    return;
+  }
 
-    if(!confirm("Yakin ingin menghapus data ini?")){
-
-        return;
-
-    }
-
-    google.script.run
-
+  google.script.run
     .withSuccessHandler(function(){
-
-        alert("Data berhasil dihapus.");
-
-        loadPelayanan();
-
+      showToast("Data berhasil dihapus.", "success");
+      loadPelayanan();
+      loadDashboard();
     })
-
     .withFailureHandler(function(err){
-
-        alert(err.message);
-
+      showToast("Gagal menghapus: " + err.message, "error");
     })
-
-    .hapusPelayananSurat(
-
-        token,
-
-        id
-
-    );
-
+    .hapusPelayananSurat(token, id);
 }
-
-//=========================================
-// CARI PELAYANAN SURAT
-//=========================================
 
 function cariPelayanan(){
-
-    const keyword =
-        document.getElementById("cariPelayanan")
-        .value
-        .toLowerCase();
-
-    const tbody =
-        document.querySelector("#tblPelayanan tbody");
-
-    const rows =
-        tbody.getElementsByTagName("tr");
-
-    for(let i=0;i<rows.length;i++){
-
-        const text =
-            rows[i].innerText.toLowerCase();
-
-        rows[i].style.display =
-            text.indexOf(keyword)>-1
-            ? ""
-            : "none";
-
-    }
-
+  const keyword = $("cariPelayanan").value.toLowerCase();
+  document.querySelectorAll("#tblPelayanan tbody tr").forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
+  });
 }
 
-//=========================================
-// TAMPILKAN HALAMAN PELAYANAN SURAT
-//=========================================
-
-function showPelayanan(){
-
-    setMenuActive("menuPelayanan");
-
-    google.script.run
-
-    .withSuccessHandler(function(html){
-
-        document.getElementById("content").innerHTML =
-            html;
-
-        loadPelayanan();
-
-    })
-
-    .withFailureHandler(function(err){
-
-        alert(err.message);
-
-    })
-
-    .getPelayananSuratPage();
-
-}
-
-//=========================================
-// MENU ACTIVE
-//=========================================
-
-function setMenuActive(id){
-
-    document
-    .querySelectorAll(".sidebar li")
-    .forEach(function(item){
-
-        item.classList.remove("active");
-
-    });
-
-    const menu =
-        document.getElementById(id);
-
-    if(menu){
-
-        menu.classList.add("active");
-
-    }
-
-}
 </script>

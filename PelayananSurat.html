@@ -1,86 +1,79 @@
 <div class="page">
-    <div class="page-header">
-        <h2>📝 Pelayanan Surat</h2>
-        <button onclick="showFormPelayanan()">➕ Tambah Permohonan</button>
-    </div>
+  <div class="page-header">
+    <h2>📝 Pelayanan Surat</h2>
+    <button onclick="showFormPelayanan()">➕ Tambah Permohonan</button>
+  </div>
 
-    <input
-        type="text"
-        id="cariPelayanan"
-        placeholder="Cari NIK, Nama atau Jenis Surat..."
-        onkeyup="cariPelayanan()">
+  <input type="text" id="cariPelayanan"
+    placeholder="Cari NIK, Nama atau Jenis Surat..."
+    onkeyup="cariPelayanan()">
 
-    <table id="tblPelayanan">
-        <thead>
-            <tr>
-                <th>No Permohonan</th>
-                <th>Tanggal</th>
-                <th>NIK</th>
-                <th>Nama</th>
-                <th>Jenis Surat</th>
-                <th>Status</th>
-                <th>File</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+  <table id="tblPelayanan">
+    <thead>
+      <tr>
+        <th>No Permohonan</th>
+        <th>Tanggal</th>
+        <th>NIK</th>
+        <th>Nama</th>
+        <th>Jenis Surat</th>
+        <th>Status</th>
+        <th>File</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </div>
 
-<!-- ======================================= -->
-<!-- MODAL -->
-<!-- ======================================= -->
 <div id="modalPelayanan" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h3 id="judulModalPelayanan">Tambah Permohonan Surat</h3>
+<div class="modal-content">
+<h3 id="judulModalPelayanan">Tambah Permohonan</h3>
 
-        <input type="hidden" id="pelayananId">
-        <input type="hidden" id="filePelayananExisting">
+<input type="hidden" id="pelayananId">
+<input type="hidden" id="filePelayananExisting">
 
-        <label>NIK</label>
-        <input type="text" id="nikPelayanan" placeholder="Masukkan NIK" maxlength="16">
+<label>NIK</label>
+<input id="nikPelayanan" placeholder="NIK Pemohon">
 
-        <label>Nama</label>
-        <input type="text" id="namaPelayanan" placeholder="Nama Pemohon" maxlength="150">
+<label>Nama</label>
+<input id="namaPelayanan" placeholder="Nama Lengkap">
 
-        <label>Jenis Surat</label>
-        <select id="jenisSurat">
-            <option value="">-- Pilih Jenis Surat --</option>
-            <option>Surat Domisili</option>
-            <option>Surat Keterangan Usaha</option>
-            <option>Surat Keterangan Tidak Mampu</option>
-            <option>Surat Pengantar KTP</option>
-            <option>Surat Pengantar KK</option>
-            <option>Surat Kelahiran</option>
-            <option>Surat Kematian</option>
-            <option>Surat Pindah</option>
-            <option>Surat Lainnya</option>
-        </select>
+<label>Jenis Surat</label>
+<select id="jenisSurat">
+  <option value="Surat Domisili">Surat Domisili</option>
+  <option value="Surat Keterangan Tidak Mampu">Surat Keterangan Tidak Mampu</option>
+  <option value="Surat Pengantar">Surat Pengantar</option>
+  <option value="Surat Usaha">Surat Usaha</option>
+  <option value="Surat Kelahiran">Surat Kelahiran</option>
+  <option value="Surat Kematian">Surat Kematian</option>
+  <option value="Lainnya">Lainnya</option>
+</select>
 
-        <label>Keperluan</label>
-        <input type="text" id="keperluan" placeholder="Keperluan permohonan surat" maxlength="200">
+<label>Keperluan</label>
+<input id="keperluan" placeholder="Keperluan pengajuan surat">
 
-        <label>Tanggal</label>
-        <input type="date" id="tanggalPelayanan">
+<label>Tanggal</label>
+<input type="date" id="tanggalPelayanan">
 
-        <label>Keterangan</label>
-        <input type="text" id="keteranganPelayanan" placeholder="Keterangan tambahan" maxlength="200">
+<label>Keterangan</label>
+<input id="keteranganPelayanan" placeholder="Keterangan tambahan">
 
-        <label>Status</label>
-        <select id="statusPelayanan">
-            <option value="Menunggu">Menunggu</option>
-            <option value="Diproses">Diproses</option>
-            <option value="Selesai">Selesai</option>
-            <option value="Ditolak">Ditolak</option>
-        </select>
+<label>Status</label>
+<select id="statusPelayanan">
+  <option value="Menunggu">Menunggu</option>
+  <option value="Diproses">Diproses</option>
+  <option value="Selesai">Selesai</option>
+  <option value="Ditolak">Ditolak</option>
+</select>
 
-        <label>Lampiran</label>
-        <input type="file" id="filePelayanan" accept=".pdf,.jpg,.jpeg,.png">
-        <small id="infoFilePelayanan" style="display:block;margin-top:8px;color:#666;"></small>
+<label>Lampiran (persyaratan/scan dokumen)</label>
+<input type="file" id="filePelayanan" accept=".pdf,.jpg,.jpeg,.png">
+<small id="infoFilePelayanan" style="display:block; margin-bottom:10px; color:#666;"></small>
 
-        <div class="modal-actions">
-            <button onclick="simpanPelayanan(this)">💾 Simpan</button>
-            <button onclick="tutupModalPelayanan()">❌ Batal</button>
-        </div>
-    </div>
+<div class="modal-actions">
+<button id="btnSimpanPelayanan" onclick="simpanPelayanan(this)">💾 Simpan</button>
+<button onclick="tutupModalPelayanan()">❌ Batal</button>
+</div>
+
+</div>
 </div>
