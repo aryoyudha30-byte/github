@@ -5,6 +5,7 @@
 // ==========================================
 const $ = id => document.getElementById(id);
 let SESSION_TOKEN = localStorage.getItem('SESSION_TOKEN') || null;
+let CURRENT_USER = JSON.parse(localStorage.getItem('CURRENT_USER') || 'null');
 
 function saveSession(token){
   SESSION_TOKEN = token;
@@ -109,6 +110,10 @@ function login(){
       if (result.success) {
         saveSession(result.token);
 
+        // Simpan info user yang login (dipakai a.l. untuk auto-isi Petugas)
+        CURRENT_USER = result.user;
+        localStorage.setItem('CURRENT_USER', JSON.stringify(result.user));
+
         google.script.run
           .withSuccessHandler(function(html){
             $("app").innerHTML = html;
@@ -131,6 +136,8 @@ function login(){
 
 function logout(){
   clearSession();
+  CURRENT_USER = null;
+  localStorage.removeItem('CURRENT_USER');
   location.reload();
 }
 
@@ -1160,6 +1167,11 @@ function showFormPelayanan(){
   $("tanggalPelayanan").value = "";
   $("keteranganPelayanan").value = "";
   $("statusPelayanan").value = "Menunggu";
+
+  // Auto-isi Petugas dari user yang sedang login
+  $("petugasPelayanan").value = CURRENT_USER ? (CURRENT_USER.nama || CURRENT_USER.username || "") : "";
+  $("noHpPelayanan").value = "";
+
   $("filePelayanan").value = "";
   $("infoFilePelayanan").innerText = "";
   $("modalPelayanan").style.display = "flex";
@@ -1181,6 +1193,8 @@ function editPelayanan(id){
   $("tanggalPelayanan").value = formatTanggalUntukInput(row[5]);
   $("keteranganPelayanan").value = row[12];
   $("statusPelayanan").value = row[8];
+  $("petugasPelayanan").value = row[10] || "";
+  $("noHpPelayanan").value = row[11] || "";
   $("filePelayanan").value = "";
   $("infoFilePelayanan").innerText = row[9] ? "File saat ini sudah terlampir. Pilih file baru untuk menggantinya." : "";
   $("modalPelayanan").style.display = "flex";
@@ -1253,6 +1267,8 @@ function lanjutkanSimpanPelayanan(btn, token, fileURL){
     tanggal: $("tanggalPelayanan").value,
     keterangan: $("keteranganPelayanan").value.trim(),
     status: $("statusPelayanan").value,
+    petugas: $("petugasPelayanan").value.trim(),
+    nohp: $("noHpPelayanan").value.trim(),
     fileURL: fileURL || ''
   };
 
@@ -1313,5 +1329,28 @@ function cariPelayanan(){
     row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
   });
 }
+//=========================================
+// MENU ACTIVE
+//=========================================
 
+function setMenuActive(id){
+
+    document
+    .querySelectorAll(".sidebar li")
+    .forEach(function(item){
+
+        item.classList.remove("active");
+
+    });
+
+    const menu =
+        document.getElementById(id);
+
+    if(menu){
+
+        menu.classList.add("active");
+
+    }
+
+}
 </script>
