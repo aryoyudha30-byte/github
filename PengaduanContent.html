@@ -1,0 +1,650 @@
+// ============================================================
+// MODUL PENGADUAN
+// ============================================================
+
+let DATA_PENGADUAN_CACHE = [];
+
+let ACTIVE_PENGADUAN_ROW = null;
+
+
+// ============================================================
+// BUKA HALAMAN
+// ============================================================
+
+function showPengaduan() {
+
+    google.script.run
+
+        .withSuccessHandler(
+            function(html) {
+
+                $("content").innerHTML =
+                    html;
+
+                loadPengaduan();
+
+            }
+        )
+
+        .withFailureHandler(
+            function(err) {
+
+                showToast(
+                    "Gagal membuka Pengaduan: " +
+                    err.message,
+                    "error"
+                );
+
+            }
+        )
+
+        .getPengaduanPage();
+
+}
+
+
+// ============================================================
+// LOAD DATA
+// ============================================================
+
+function loadPengaduan() {
+
+    const token =
+        getToken();
+
+
+    if (!token) {
+
+        return;
+
+    }
+
+
+    google.script.run
+
+        .withSuccessHandler(
+            function(data) {
+
+                DATA_PENGADUAN_CACHE =
+                    data || [];
+
+
+                const tbody =
+                    document.querySelector(
+                        "#tblPengaduan tbody"
+                    );
+
+
+                if (!tbody) {
+
+                    return;
+
+                }
+
+
+                tbody.innerHTML = "";
+
+
+                if (
+                    !data ||
+                    data.length <= 1
+                ) {
+
+                    tbody.innerHTML = `
+
+                        <tr>
+
+                            <td
+                                colspan="7"
+                                style="text-align:center;">
+
+                                Belum ada pengaduan.
+
+                            </td>
+
+                        </tr>
+
+                    `;
+
+                    return;
+
+                }
+
+
+                for (
+                    let i = 1;
+                    i < data.length;
+                    i++
+                ) {
+
+                    const row =
+                        data[i];
+
+
+                    const rowIndex =
+                        i + 1;
+
+
+                    const tanggal =
+                        row[0] || "";
+
+
+                    const nama =
+                        row[1] || "";
+
+
+                    const nik =
+                        row[2] || "";
+
+
+                    const pengaduan =
+                        row[5] || "";
+
+
+                    const bukti =
+                        row[7] || "";
+
+
+                    const status =
+                        row[8] ||
+                        "Diterima";
+
+
+                    let badge =
+                        "";
+
+
+                    if (
+                        status ===
+                        "Selesai"
+                    ) {
+
+                        badge =
+                            "🟢";
+
+                    }
+                    else if (
+                        status ===
+                        "Diproses"
+                    ) {
+
+                        badge =
+                            "🟡";
+
+                    }
+                    else {
+
+                        badge =
+                            "🔵";
+
+                    }
+
+
+                    let buktiHtml =
+                        "-";
+
+
+                    if (
+                        bukti &&
+                        String(bukti)
+                            .startsWith("http")
+                    ) {
+
+                        buktiHtml = `
+
+                            <a
+                                href="${escapeHtml(bukti)}"
+                                target="_blank">
+
+                                📎 Lihat
+
+                            </a>
+
+                        `;
+
+                    }
+
+
+                    const tr =
+                        document.createElement(
+                            "tr"
+                        );
+
+
+                    tr.innerHTML = `
+
+                        <td>
+                            ${escapeHtml(tanggal)}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(nama)}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(nik)}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(pengaduan)}
+                        </td>
+
+                        <td>
+                            ${badge}
+                            ${escapeHtml(status)}
+                        </td>
+
+                        <td>
+                            ${buktiHtml}
+                        </td>
+
+                        <td>
+
+                            <button
+                                onclick="bukaDetailPengaduan(${i}, ${rowIndex})">
+
+                                👁️ Detail
+
+                            </button>
+
+
+                            <button
+                                onclick="hapusPengaduanDirect(${rowIndex})">
+
+                                🗑️
+
+                            </button>
+
+                        </td>
+
+                    `;
+
+
+                    tbody.appendChild(
+                        tr
+                    );
+
+                }
+
+            }
+        )
+
+        .withFailureHandler(
+            function(err) {
+
+                showToast(
+                    "Gagal mengambil pengaduan: " +
+                    err.message,
+                    "error"
+                );
+
+            }
+        )
+
+        .getPengaduan(
+            token
+        );
+
+}
+
+
+// ============================================================
+// DETAIL
+// ============================================================
+
+function bukaDetailPengaduan(
+    cacheIndex,
+    rowIndex
+) {
+
+    const item =
+        DATA_PENGADUAN_CACHE[
+            cacheIndex
+        ];
+
+
+    if (!item) {
+
+        return;
+
+    }
+
+
+    ACTIVE_PENGADUAN_ROW =
+        rowIndex;
+
+
+    $("detTgl").innerText =
+        item[0] || "-";
+
+
+    $("detNama").innerText =
+        item[1] || "-";
+
+
+    $("detNik").innerText =
+        item[2] || "-";
+
+
+    $("detAlamat").innerText =
+        item[3] || "-";
+
+
+    $("detHp").innerText =
+        item[4] || "-";
+
+
+    $("detPengaduan").innerText =
+        item[5] || "-";
+
+
+    $("detDeskripsi").innerText =
+        item[6] ||
+        "Tidak ada deskripsi.";
+
+
+    const link =
+        $("detBukti");
+
+
+    const noBukti =
+        $("detBuktiTidakAda");
+
+
+    if (
+        item[7] &&
+        String(item[7])
+            .startsWith("http")
+    ) {
+
+        link.href =
+            item[7];
+
+        link.style.display =
+            "inline";
+
+        noBukti.style.display =
+            "none";
+
+    }
+    else {
+
+        link.style.display =
+            "none";
+
+        noBukti.style.display =
+            "inline";
+
+    }
+
+
+    $("selStatusAksi").value =
+        item[8] ||
+        "Diterima";
+
+
+    $("modalDetailPengaduan")
+        .style.display =
+        "block";
+
+}
+
+
+// ============================================================
+// SIMPAN STATUS
+// ============================================================
+
+function simpanStatusPengaduan(
+    btn
+) {
+
+    const token =
+        getToken();
+
+
+    if (
+        !ACTIVE_PENGADUAN_ROW
+    ) {
+
+        return;
+
+    }
+
+
+    const status =
+        $("selStatusAksi")
+            .value;
+
+
+    if (
+        typeof toggleButtonLoading ===
+        "function"
+    ) {
+
+        toggleButtonLoading(
+            btn,
+            true
+        );
+
+    }
+
+
+    google.script.run
+
+        .withSuccessHandler(
+            function() {
+
+                if (
+                    typeof toggleButtonLoading ===
+                    "function"
+                ) {
+
+                    toggleButtonLoading(
+                        btn,
+                        false
+                    );
+
+                }
+
+
+                showToast(
+                    "Status berhasil diperbarui.",
+                    "success"
+                );
+
+
+                tutupDetailPengaduan();
+
+
+                loadPengaduan();
+
+            }
+        )
+
+        .withFailureHandler(
+            function(err) {
+
+                if (
+                    typeof toggleButtonLoading ===
+                    "function"
+                ) {
+
+                    toggleButtonLoading(
+                        btn,
+                        false
+                    );
+
+                }
+
+
+                showToast(
+                    "Gagal mengubah status: " +
+                    err.message,
+                    "error"
+                );
+
+            }
+        )
+
+        .updateStatusPengaduan(
+            token,
+            ACTIVE_PENGADUAN_ROW,
+            status
+        );
+
+}
+
+
+// ============================================================
+// HAPUS
+// ============================================================
+
+function hapusPengaduanDirect(
+    rowIndex
+) {
+
+    if (
+        !confirm(
+            "Yakin ingin menghapus pengaduan ini?"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    const token =
+        getToken();
+
+
+    google.script.run
+
+        .withSuccessHandler(
+            function() {
+
+                showToast(
+                    "Pengaduan berhasil dihapus.",
+                    "success"
+                );
+
+
+                loadPengaduan();
+
+            }
+        )
+
+        .withFailureHandler(
+            function(err) {
+
+                showToast(
+                    "Gagal menghapus: " +
+                    err.message,
+                    "error"
+                );
+
+            }
+        )
+
+        .hapusPengaduan(
+            token,
+            rowIndex
+        );
+
+}
+
+
+// ============================================================
+// TUTUP MODAL
+// ============================================================
+
+function tutupDetailPengaduan() {
+
+    $("modalDetailPengaduan")
+        .style.display =
+        "none";
+
+    ACTIVE_PENGADUAN_ROW =
+        null;
+
+}
+
+
+// ============================================================
+// SEARCH
+// ============================================================
+
+function cariPengaduan() {
+
+    const input =
+        $("cariPengaduan");
+
+
+    const filter =
+        input.value
+            .toUpperCase();
+
+
+    const rows =
+        document.querySelectorAll(
+            "#tblPengaduan tbody tr"
+        );
+
+
+    rows.forEach(
+        function(row) {
+
+            row.style.display =
+                row.innerText
+                    .toUpperCase()
+                    .includes(filter)
+                    ? ""
+                    : "none";
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// ESCAPE HTML
+// ============================================================
+
+function escapeHtml(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+
+    return String(value)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}

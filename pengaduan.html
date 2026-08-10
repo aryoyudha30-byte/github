@@ -1,9 +1,301 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-  </head>
-  <body>
-    
-  </body>
-</html>
+<!-- =========================================
+     PENGADUAN.HTML
+     Modul Data Pengaduan
+     ========================================= -->
+
+<div class="page">
+
+    <!-- ==============================
+         HEADER
+         ============================== -->
+
+    <div class="page-header">
+
+        <div>
+            <h2>📢 Data Pengaduan Warga</h2>
+
+            <p style="
+                margin:4px 0 0;
+                color:#666;
+                font-size:14px;
+            ">
+                Data pengaduan yang masuk melalui Formulir Warga
+            </p>
+        </div>
+
+    </div>
+
+
+    <!-- ==============================
+         SEARCH
+         ============================== -->
+
+    <div style="
+        display:flex;
+        gap:10px;
+        margin-bottom:15px;
+        flex-wrap:wrap;
+    ">
+
+        <input
+            type="text"
+            id="cariPengaduan"
+            placeholder="🔍 Cari nama, NIK, layanan atau pengaduan..."
+            onkeyup="cariDataPengaduan()"
+            style="
+                flex:1;
+                min-width:250px;
+            ">
+
+        <button
+            onclick="loadPengaduan()">
+            🔄 Refresh
+        </button>
+
+    </div>
+
+
+    <!-- ==============================
+         TABLE
+         ============================== -->
+
+    <div style="
+        width:100%;
+        overflow-x:auto;
+    ">
+
+        <table id="tblPengaduan">
+
+            <thead>
+
+                <tr>
+
+                    <th>No</th>
+
+                    <th>Tanggal</th>
+
+                    <th>Nama</th>
+
+                    <th>NIK</th>
+
+                    <th>No HP</th>
+
+                    <th>Layanan</th>
+
+                    <th>Pengaduan</th>
+
+                    <th>Status</th>
+
+                    <th>Aksi</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <tr>
+
+                    <td
+                        colspan="9"
+                        style="text-align:center;">
+                        Memuat data...
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     MODAL DETAIL PENGADUAN
+     ===================================================== -->
+
+<div
+    id="modalPengaduan"
+    class="modal"
+    style="display:none;">
+
+    <div
+        class="modal-content"
+        style="
+            max-width:700px;
+            max-height:90vh;
+            overflow-y:auto;
+        ">
+
+
+        <!-- ==============================
+             JUDUL
+             ============================== -->
+
+        <h3>
+            📋 Detail Pengaduan Warga
+        </h3>
+
+
+        <hr>
+
+
+        <!-- ==============================
+             INFORMASI WARGA
+             ============================== -->
+
+        <div class="detail-grid">
+
+            <p>
+                <strong>Tanggal:</strong><br>
+                <span id="detPengaduanTanggal">-</span>
+            </p>
+
+            <p>
+                <strong>Nama Lengkap:</strong><br>
+                <span id="detPengaduanNama">-</span>
+            </p>
+
+            <p>
+                <strong>NIK:</strong><br>
+                <span id="detPengaduanNik">-</span>
+            </p>
+
+            <p>
+                <strong>Nomor HP:</strong><br>
+                <span id="detPengaduanHp">-</span>
+            </p>
+
+            <p>
+                <strong>Alamat:</strong><br>
+                <span id="detPengaduanAlamat">-</span>
+            </p>
+
+            <p>
+                <strong>Layanan:</strong><br>
+                <span id="detPengaduanLayanan">-</span>
+            </p>
+
+        </div>
+
+
+        <hr>
+
+
+        <!-- ==============================
+             ISI PENGADUAN
+             ============================== -->
+
+        <h4>
+            📝 Pengaduan
+        </h4>
+
+        <div
+            id="detPengaduanJudul"
+            style="
+                background:#f5f5f5;
+                padding:12px;
+                border-radius:8px;
+                margin-bottom:15px;
+            ">
+            -
+        </div>
+
+
+        <h4>
+            📄 Deskripsi
+        </h4>
+
+        <div
+            id="detPengaduanDeskripsi"
+            style="
+                background:#f5f5f5;
+                padding:12px;
+                border-radius:8px;
+                white-space:pre-wrap;
+                margin-bottom:15px;
+            ">
+            -
+        </div>
+
+
+        <!-- ==============================
+             BUKTI
+             ============================== -->
+
+        <h4>
+            📎 Bukti Kejadian
+        </h4>
+
+        <div
+            id="detPengaduanBukti"
+            style="
+                margin-bottom:15px;
+            ">
+            Tidak ada bukti.
+        </div>
+
+
+        <hr>
+
+
+        <!-- ==============================
+             STATUS
+             ============================== -->
+
+        <label>
+            <strong>Status Pengaduan</strong>
+        </label>
+
+        <select
+            id="statusPengaduan"
+            style="
+                width:100%;
+                margin-top:8px;
+                padding:10px;
+            ">
+
+            <option value="Diterima">
+                🟢 Diterima
+            </option>
+
+            <option value="Diproses">
+                🟡 Diproses
+            </option>
+
+            <option value="Selesai">
+                🔵 Selesai
+            </option>
+
+        </select>
+
+
+        <!-- ==============================
+             ACTION
+             ============================== -->
+
+        <div
+            class="modal-actions"
+            style="
+                margin-top:20px;
+            ">
+
+            <button
+                onclick="simpanStatusPengaduan(this)">
+                💾 Simpan Status
+            </button>
+
+            <button
+                onclick="tutupModalPengaduan()">
+                ❌ Tutup
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
