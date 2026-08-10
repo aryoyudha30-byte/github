@@ -1,135 +1,162 @@
-// ======================================
-// PENGADUAN.GS
-// Membaca & mengelola data Pengaduan yang SUDAH dikategorikan
-// oleh Router Script (dari Google Form -> tab "Pengaduan" -> tab status).
-//
-// Struktur kolom (9 kolom, SAMA di semua tab status):
-// A=Timestamp B=Nama C=NIK D=Alamat E=NoHP
-// F=KategoriPengaduan G=Deskripsi H=BuktiKejadian I=Status
-//
-// PENTING: Router Script TIDAK diubah. File ini hanya MEMBACA
-// dan MEMINDAHKAN baris antar tab status yang sudah ada
-// (Diterima / Diproses / Selesai) -- pola yang sama dengan
-// automasi Sheets paling awal di project ini.
-// ======================================
+// ============================================================
+// PENGADUAN.GS — LOGIKA BACKEND
+// ============================================================
+const PENGADUAN_SHEET_NAME = "Pengaduan";
+const PENGADUAN_TRACKER_SHEETS = ["Diterima", "Diproses", "Selesai"];
+const PENGADUAN_STATUS_COL = 9; // Kolom I = Status
+const TRACKER_NIK_COL = 3;      // Kolom C = NIK di tracker
 
-const STAGE_SHEETS_PENGADUAN = ["Diterima", "Diproses", "Selesai"];
-
-function getPengaduanPage(){
-  return HtmlService
-    .createHtmlOutputFromFile("pengaduan")
-    .getContent();
-}
-
-// ======================================
-// AMBIL SEMUA DATA (gabungan dari 3 tab status)
-// ======================================
-function getPengaduan(token){
-  const session = verifySession(token);
-  if (!session) throw new Error("Sesi login tidak valid.");
-
-  let hasil = [];
-
-  STAGE_SHEETS_PENGADUAN.forEach(function(namaTab){
-    const sh = getSheet(namaTab);
-    if (!sh) return; // tab belum ada, lewati saja (jangan error)
-
-    const data = sh.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i].map(function(cell){
-        if (Object.prototype.toString.call(cell) === "[object Date]") {
-          return Utilities.formatDate(cell, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm");
-        }
-        return cell;
-      });
-      hasil.push(row);
+// ============================================================
+// AMBIL SEMUA DATA PENGADUAN
+// ============================================================
+function getPengaduan(token) {
+  const sheet = getFormSheet(PENGADUAN_SHEET_NAME);
+  if (!sheet) throw new Error('Sheet "Pengaduan" tidak ditemukan.');
+  
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+  
+  const values = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  return values.map(row => {
+    if (row[0] && Object.prototype.toString.call(row[0]) === "[object Date]") {
+      row[0] = Utilities.formatDate(row[0], Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm");
     }
+    return row;
   });
-
-  return hasil;
 }
 
-// ======================================
-// UBAH STATUS -> PINDAHKAN BARIS KE TAB TUJUAN
-// Dicari berdasarkan kombinasi Timestamp + NIK (kunci unik,
-// karena data dari Form tidak punya kolom ID angka).
-// ======================================
-function ubahStatusPengaduan(token, timestampAsli, nik, statusBaru){
-  const session = verifySession(token);
-  if (!session) throw new Error("Sesi login tidak valid.");
+// ============================================================
+// MUAT HALAMAN HTML
+// ============================================================
+function getPengaduanPage() {
+  return HtmlService.createHtmlOutputFromFile("Pengaduan").getContent();
+}
 
-  const targetNama = STAGE_SHEETS_PENGADUAN.find(function(nama){
-    return nama.toLowerCase() === statusBaru.toString().trim().toLowerCase();
-  });
-  if (!targetNama) throw new Error("Status tujuan tidak dikenali: " + statusBaru);
+// ============================================================
+// CARI BARIS DATA BERDASARKAN TIMESTAMP + NIK
+// ============================================================
+function findPengaduanRow(sheet, timestamp, nik) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return -1;
+  
+  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    const rowTime = normalizeTimestamp(row[0]);
+    const targetTime = normalizeTimestamp(timestamp);
+    const rowNik = String(row[2] || "").trim();
+    const targetNik = String(nik || "").trim();
+    if (rowTime === targetTime && rowNik === targetNik) return i + 2;
+  }
+  return -1;
+}
 
-  // Cari baris di SEMUA tab status
-  for (let s = 0; s < STAGE_SHEETS_PENGADUAN.length; s++) {
-    const namaTab = STAGE_SHEETS_PENGADUAN[s];
-    const sh = getSheet(namaTab);
-    if (!sh) continue;
+function normalizeTimestamp(value) {
+  if (!value) return "";
+  if (Object.prototype.toString.call(value) === "[object Date]") {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+  }
+  return String(value).trim().replace("T", " ");
+}
 
-    const values = sh.getDataRange().getValues();
-    for (let i = 1; i < values.length; i++) {
-      const tsCell = values[i][0];
-      const tsString = Object.prototype.toString.call(tsCell) === "[object Date]"
-        ? Utilities.formatDate(tsCell, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")
-        : tsCell.toString();
+// ============================================================
+// UBAH STATUS PENGADUAN + SINCRON TRACKER
+// ============================================================
+function ubahStatusPengaduan(token, timestamp, nik, statusBaru) {
+  const statusValid = ["Diterima", "Diproses", "Selesai"];
+  if (statusValid.indexOf(statusBaru) === -1) throw new Error("Status tidak valid.");
+  
+  const sheet = getFormSheet(PENGADUAN_SHEET_NAME);
+  if (!sheet) throw new Error('Sheet "Pengaduan" tidak ditemukan.');
+  
+  const rowNumber = findPengaduanRow(sheet, timestamp, nik);
+  if (rowNumber === -1) throw new Error("Data pengaduan tidak ditemukan.");
+  
+  // Update status di sheet Pengaduan
+  sheet.getRange(rowNumber, PENGADUAN_STATUS_COL).setValue(statusBaru);
+  
+  // Ambil data untuk tracker
+  const row = sheet.getRange(rowNumber, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const trackerRow = [row[0], row[1], row[2], row[3], row[4], row[5] || "Pengaduan", statusBaru];
+  
+  // Hapus dari tracker lama, tambah ke tracker baru
+  removeFromAllTrackers(row[2], row[0]);
+  const targetTracker = getFormSheet(statusBaru);
+  if (!targetTracker) throw new Error('Sheet tracker "' + statusBaru + '" tidak ditemukan.');
+  targetTracker.appendRow(trackerRow);
+  
+  return true;
+}
 
-      const nikCell = values[i][2] ? values[i][2].toString().trim() : "";
+// ============================================================
+// HAPUS PENGADUAN
+// ============================================================
+function hapusPengaduan(token, timestamp, nik) {
+  const sheet = getFormSheet(PENGADUAN_SHEET_NAME);
+  if (!sheet) throw new Error('Sheet "Pengaduan" tidak ditemukan.');
+  
+  const rowNumber = findPengaduanRow(sheet, timestamp, nik);
+  if (rowNumber === -1) throw new Error("Data pengaduan tidak ditemukan.");
+  
+  sheet.deleteRow(rowNumber);
+  removeFromAllTrackers(nik, timestamp);
+  return true;
+}
 
-      if (tsString === timestampAsli.toString().trim() && nikCell === nik.toString().trim()) {
-
-        // Kalau target sama dengan tab sekarang, cukup update kolom Status saja
-        if (namaTab === targetNama) {
-          sh.getRange(i + 1, 9).setValue(targetNama);
-          return true;
-        }
-
-        // Ambil baris, update kolom Status, pindahkan ke tab tujuan
-        const rowData = values[i].slice();
-        rowData[8] = targetNama; // kolom I = Status
-
-        const targetSheet = getSheet(targetNama);
-        if (!targetSheet) throw new Error("Tab tujuan '" + targetNama + "' tidak ditemukan.");
-
-        targetSheet.appendRow(rowData);
-        sh.deleteRow(i + 1);
-        return true;
+// ============================================================
+// HAPUS DATA DARI SEMUA TRACKER
+// ============================================================
+function removeFromAllTrackers(nik, timestamp) {
+  PENGADUAN_TRACKER_SHEETS.forEach(sheetName => {
+    const sheet = getFormSheet(sheetName);
+    if (!sheet || sheet.getLastRow() <= 1) return;
+    
+    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+    for (let i = data.length - 1; i >= 0; i--) {
+      const row = data[i];
+      const rowNik = String(row[TRACKER_NIK_COL - 1] || "").trim();
+      const rowTime = normalizeTimestamp(row[0]);
+      if (rowNik === String(nik).trim() && rowTime === normalizeTimestamp(timestamp)) {
+        sheet.deleteRow(i + 2);
       }
     }
-  }
-
-  throw new Error("Data pengaduan tidak ditemukan (mungkin sudah dipindahkan sebelumnya, coba muat ulang halaman).");
+  });
 }
 
-// ======================================
-// HAPUS PENGADUAN (dicari lewat Timestamp + NIK, sama seperti ubahStatusPengaduan)
-// ======================================
-function hapusPengaduan(token, timestampAsli, nik){
-  const session = verifySession(token);
-  if (!session) throw new Error("Sesi login tidak valid.");
+// ============================================================
+// TEST KONEKSI (JALANKAN MANUAL UNTUK CEK)
+// ============================================================
+function testKoneksiPengaduan() {
+  const ss = getFormDatabase();
+  Logger.log("Spreadsheet: " + ss.getName());
+  ss.getSheets().forEach(s => Logger.log("Sheet: " + s.getName()));
+  const p = getFormSheet("Pengaduan");
+  if (!p) throw new Error('Sheet "Pengaduan" tidak ditemukan.');
+  Logger.log("✅ Koneksi Pengaduan berhasil!");
+}
 
-  for (let s = 0; s < STAGE_SHEETS_PENGADUAN.length; s++) {
-    const namaTab = STAGE_SHEETS_PENGADUAN[s];
-    const sh = getSheet(namaTab);
-    if (!sh) continue;
-
-    const values = sh.getDataRange().getValues();
-    for (let i = 1; i < values.length; i++) {
-      const tsCell = values[i][0];
-      const tsString = Object.prototype.toString.call(tsCell) === "[object Date]"
-        ? Utilities.formatDate(tsCell, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")
-        : tsCell.toString();
-
-      const nikCell = values[i][2] ? values[i][2].toString().trim() : "";
-
-      if (tsString === timestampAsli.toString().trim() && nikCell === nik.toString().trim()) {
-        sh.deleteRow(i + 1);
-        return true;
-      }
-    }
+function tesDuaDatabase() {
+  // 1. Tes Database Utama
+  try {
+    const dbUtama = SpreadsheetApp.openById(SPREADSHEET_ID);
+    Logger.log("✅ Database Utama BERHASIL diakses: " + dbUtama.getName());
+  } catch (err) {
+    Logger.log("❌ Database Utama GAGAL: " + err.message);
   }
 
-  throw new Error("Data pengaduan tidak ditemukan.");
+  // 2. Tes Database Formulir (tempat Pengaduan)
+  try {
+    const dbForm = SpreadsheetApp.openById(SPREADSHEET_ID_FORM);
+    Logger.log("✅ Database Formulir BERHASIL diakses: " + dbForm.getName());
+    
+    const sheetPengaduan = dbForm.getSheetByName("Pengaduan");
+    if (sheetPengaduan) {
+      Logger.log("✅ Tab 'Pengaduan' DITEMUKAN, jumlah baris: " + sheetPengaduan.getLastRow());
+    } else {
+      Logger.log("❌ Tab 'Pengaduan' TIDAK ADA!");
+      Logger.log("📋 Daftar tab yang ada: " + dbForm.getSheets().map(s => s.getName()).join(", "));
+    }
+  } catch (err) {
+    Logger.log("❌ Database Formulir GAGAL: " + err.message);
+  }
 }

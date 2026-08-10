@@ -1330,27 +1330,28 @@ function cariPelayanan(){
   });
 }
 
-// ======================================
-// MODUL PENGADUAN (tambahkan ke JS.html)
-// ======================================
-
+// ============================================================
+// MODUL PENGADUAN — SEMUA FUNGSI JS DI SINI
+// ============================================================
 let DATA_PENGADUAN_TERAKHIR = [];
-let PENGADUAN_AKTIF = null; // simpan {timestamp, nik} baris yang sedang dibuka di modal
+let PENGADUAN_AKTIF = null;
 
-function showPengaduan(){
+// Buka halaman pengaduan
+function showPengaduan() {
   setActiveMenu("menuPengaduan");
   google.script.run
-    .withSuccessHandler(function(html){
+    .withSuccessHandler(html => {
       $("content").innerHTML = html;
       loadPengaduan();
     })
-    .withFailureHandler(function(err){
-      showToast("Gagal membuka Pengaduan: " + err.message, "error");
+    .withFailureHandler(err => {
+      showToast("Gagal membuka Pengaduan: " + getErrorMessage(err), "error");
     })
     .getPengaduanPage();
 }
 
-function loadPengaduan(){
+// Muat data dari backend
+function loadPengaduan() {
   const token = getToken();
   if (!token) {
     showToast("Sesi login telah habis. Silakan login kembali.", "error");
@@ -1359,7 +1360,7 @@ function loadPengaduan(){
   }
 
   google.script.run
-    .withSuccessHandler(function(data){
+    .withSuccessHandler(data => {
       DATA_PENGADUAN_TERAKHIR = data || [];
       const tbody = document.querySelector("#tblPengaduan tbody");
       if (!tbody) return;
@@ -1370,133 +1371,150 @@ function loadPengaduan(){
       }
 
       let html = "";
-      // Catatan: getPengaduan() TIDAK punya baris header (langsung data),
-      // beda dari modul lain, karena data digabung dari 3 tab sekaligus.
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
-        // row: [Timestamp, Nama, NIK, Alamat, NoHP, KategoriPengaduan, Deskripsi, BuktiKejadian, Status]
-        const buktiHtml = row[7] && row[7].toString().startsWith("http")
-          ? `<a href="${row[7]}" target="_blank">📎 Lihat</a>`
-          : "-";
+        const status = row[8] || "Diterima";
+        let badgeClass = "status-diterima";
+        if (status === "Diproses") badgeClass = "status-diproses";
+        if (status === "Selesai") badgeClass = "status-selesai";
 
         html += `
           <tr>
             <td>${i + 1}</td>
-            <td>${row[0] || ''}</td>
-            <td>${row[1] || ''}</td>
-            <td>${row[2] || ''}</td>
-            <td>${row[4] || ''}</td>
-            <td>${row[5] || ''}</td>
-            <td>${row[8] || ''}</td>
-            <td class="aksi">
-              <button class="btn-edit" onclick="bukaDetailPengaduan(${i})">👁️ Detail</button>
-              <button class="btn-hapus" onclick="hapusPengaduanDirect(${i})">🗑️ Hapus</button>
+            <td>${escapeHtml(row[0])}</td>
+            <td>${escapeHtml(row[1])}</td>
+            <td>${escapeHtml(row[2])}</td>
+            <td>${escapeHtml(row[4])}</td>
+            <td>Pengaduan</td>
+            <td>${escapeHtml(row[5])}</td>
+            <td><span class="status-badge ${badgeClass}">${escapeHtml(status)}</span></td>
+            <td>
+              <div class="action-btn-group">
+                <button class="btn-edit" onclick="bukaDetailPengaduan(${i})">👁️ Detail</button>
+                <button class="btn-hapus" onclick="hapusPengaduanDirect(${i})">🗑️ Hapus</button>
+              </div>
             </td>
           </tr>`;
       }
       tbody.innerHTML = html;
     })
-    .withFailureHandler(function(err){
-      showToast("Gagal memuat data Pengaduan: " + err.message, "error");
+    .withFailureHandler(err => {
+      showToast("Gagal memuat data Pengaduan: " + getErrorMessage(err), "error");
     })
     .getPengaduan(token);
 }
 
-function bukaDetailPengaduan(index){
+// Buka modal detail
+function bukaDetailPengaduan(index) {
   const item = DATA_PENGADUAN_TERAKHIR[index];
-  if (!item) {
-    showToast("Data tidak ditemukan, coba muat ulang halaman.", "error");
-    return;
-  }
+  if (!item) { showToast("Data tidak ditemukan.", "error"); return; }
 
-  // Simpan kunci unik (timestamp+nik) baris yang aktif, dipakai saat Simpan/Hapus
   PENGADUAN_AKTIF = { timestamp: item[0], nik: item[2] };
-
   $("detPengaduanTanggal").innerText = item[0] || "-";
   $("detPengaduanNama").innerText = item[1] || "-";
   $("detPengaduanNik").innerText = item[2] || "-";
   $("detPengaduanHp").innerText = item[4] || "-";
   $("detPengaduanAlamat").innerText = item[3] || "-";
-  $("detPengaduanLayanan").innerText = item[5] || "-";
+  $("detPengaduanLayanan").innerText = "Pengaduan";
   $("detPengaduanJudul").innerText = item[5] || "-";
   $("detPengaduanDeskripsi").innerText = item[6] || "Tidak ada deskripsi.";
 
-  const buktiDiv = $("detPengaduanBukti");
-  if (item[7] && item[7].toString().startsWith("http")) {
-    buktiDiv.innerHTML = `<a href="${item[7]}" target="_blank">📎 Lihat Bukti Kejadian</a>`;
+  const bukti = $("detPengaduanBukti");
+  if (item[7] && String(item[7]).startsWith("http")) {
+    bukti.innerHTML = `<a href="${escapeAttribute(item[7])}" target="_blank" rel="noopener noreferrer">📎 Lihat Bukti Kejadian</a>`;
   } else {
-    buktiDiv.innerText = "Tidak ada bukti.";
+    bukti.innerText = "Tidak ada bukti.";
   }
 
   $("statusPengaduan").value = item[8] || "Diterima";
   $("modalPengaduan").style.display = "flex";
 }
 
-function tutupModalPengaduan(){
+// Tutup modal
+function tutupModalPengaduan() {
   $("modalPengaduan").style.display = "none";
   PENGADUAN_AKTIF = null;
 }
 
-function simpanStatusPengaduan(btn){
-  if (!PENGADUAN_AKTIF) {
-    showToast("Tidak ada data aktif.", "error");
-    return;
-  }
-
+// Simpan perubahan status
+function simpanStatusPengaduan(btn) {
+  if (!PENGADUAN_AKTIF) { showToast("Tidak ada data aktif.", "error"); return; }
   const token = getToken();
-  if (!token) {
-    showToast("Sesi login telah habis. Silakan login kembali.", "error");
-    logout();
-    return;
-  }
-
+  if (!token) { showToast("Sesi login telah habis.", "error"); logout(); return; }
   const statusBaru = $("statusPengaduan").value;
-  toggleButtonLoading(btn, true);
 
+  toggleButtonLoading(btn, true);
   google.script.run
-    .withSuccessHandler(function(){
+    .withSuccessHandler(() => {
       toggleButtonLoading(btn, false, "💾 Simpan Status");
       showToast("Status berhasil diperbarui.", "success");
       tutupModalPengaduan();
       loadPengaduan();
-      loadDashboard();
+      if (typeof loadDashboard === "function") loadDashboard();
     })
-    .withFailureHandler(function(err){
+    .withFailureHandler(err => {
       toggleButtonLoading(btn, false, "💾 Simpan Status");
-      showToast("Gagal mengubah status: " + err.message, "error");
+      showToast("Gagal mengubah status: " + getErrorMessage(err), "error");
     })
     .ubahStatusPengaduan(token, PENGADUAN_AKTIF.timestamp, PENGADUAN_AKTIF.nik, statusBaru);
 }
 
-function hapusPengaduanDirect(index){
+// Hapus data pengaduan
+function hapusPengaduanDirect(index) {
   const item = DATA_PENGADUAN_TERAKHIR[index];
   if (!item) return;
-
   if (!confirm("Yakin ingin menghapus pengaduan ini?")) return;
-
   const token = getToken();
-  if (!token) {
-    logout();
-    return;
-  }
+  if (!token) { logout(); return; }
 
   google.script.run
-    .withSuccessHandler(function(){
+    .withSuccessHandler(() => {
       showToast("Pengaduan berhasil dihapus.", "success");
       loadPengaduan();
-      loadDashboard();
+      if (typeof loadDashboard === "function") loadDashboard();
     })
-    .withFailureHandler(function(err){
-      showToast("Gagal menghapus: " + err.message, "error");
+    .withFailureHandler(err => {
+      showToast("Gagal menghapus: " + getErrorMessage(err), "error");
     })
     .hapusPengaduan(token, item[0], item[2]);
 }
 
-function cariDataPengaduan(){
-  const keyword = $("cariPengaduan").value.toLowerCase();
+// Pencarian data
+function cariDataPengaduan() {
+  const input = $("cariPengaduan");
+  if (!input) return;
+  const keyword = input.value.toLowerCase();
   document.querySelectorAll("#tblPengaduan tbody tr").forEach(row => {
     row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
   });
+}
+
+// ============================================================
+// FUNGSI BANTUAN (JANGAN DIPINDAH)
+// ============================================================
+function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function escapeAttribute(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function getErrorMessage(err) {
+  if (!err) return "Terjadi kesalahan.";
+  if (err.message) return err.message;
+  return String(err);
 }
 
 </script>
