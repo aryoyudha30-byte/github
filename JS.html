@@ -1330,679 +1330,173 @@ function cariPelayanan(){
   });
 }
 
-//=========================================
-// MENU ACTIVE
-//=========================================
+// ======================================
+// MODUL PENGADUAN (tambahkan ke JS.html)
+// ======================================
 
-function setMenuActive(id){
+let DATA_PENGADUAN_TERAKHIR = [];
+let PENGADUAN_AKTIF = null; // simpan {timestamp, nik} baris yang sedang dibuka di modal
 
-    document
-    .querySelectorAll(".sidebar li")
-    .forEach(function(item){
-
-        item.classList.remove("active");
-
-    });
-
-    const menu =
-        document.getElementById(id);
-
-    if(menu){
-
-        menu.classList.add("active");
-
-    }
-
+function showPengaduan(){
+  setActiveMenu("menuPengaduan");
+  google.script.run
+    .withSuccessHandler(function(html){
+      $("content").innerHTML = html;
+      loadPengaduan();
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal membuka Pengaduan: " + err.message, "error");
+    })
+    .getPengaduanPage();
 }
 
-// ============================================================
-// MODUL PENGADUAN
-// ============================================================
+function loadPengaduan(){
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis. Silakan login kembali.", "error");
+    logout();
+    return;
+  }
 
-let DATA_PENGADUAN_CACHE = [];
+  google.script.run
+    .withSuccessHandler(function(data){
+      DATA_PENGADUAN_TERAKHIR = data || [];
+      const tbody = document.querySelector("#tblPengaduan tbody");
+      if (!tbody) return;
 
-let ACTIVE_PENGADUAN_ROW = null;
-
-
-// ============================================================
-// BUKA HALAMAN
-// ============================================================
-
-function showPengaduan() {
-
-    google.script.run
-
-        .withSuccessHandler(
-            function(html) {
-
-                $("content").innerHTML =
-                    html;
-
-                loadPengaduan();
-
-            }
-        )
-
-        .withFailureHandler(
-            function(err) {
-
-                showToast(
-                    "Gagal membuka Pengaduan: " +
-                    err.message,
-                    "error"
-                );
-
-            }
-        )
-
-        .getPengaduanPage();
-
-}
-
-
-// ============================================================
-// LOAD DATA
-// ============================================================
-
-function loadPengaduan() {
-
-    const token =
-        getToken();
-
-
-    if (!token) {
-
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Belum ada pengaduan.</td></tr>';
         return;
-
-    }
-
-
-    google.script.run
-
-        .withSuccessHandler(
-            function(data) {
-
-                DATA_PENGADUAN_CACHE =
-                    data || [];
-
-
-                const tbody =
-                    document.querySelector(
-                        "#tblPengaduan tbody"
-                    );
-
-
-                if (!tbody) {
-
-                    return;
-
-                }
-
-
-                tbody.innerHTML = "";
-
-
-                if (
-                    !data ||
-                    data.length <= 1
-                ) {
-
-                    tbody.innerHTML = `
-
-                        <tr>
-
-                            <td
-                                colspan="7"
-                                style="text-align:center;">
-
-                                Belum ada pengaduan.
-
-                            </td>
-
-                        </tr>
-
-                    `;
-
-                    return;
-
-                }
-
-
-                for (
-                    let i = 1;
-                    i < data.length;
-                    i++
-                ) {
-
-                    const row =
-                        data[i];
-
-
-                    const rowIndex =
-                        i + 1;
-
-
-                    const tanggal =
-                        row[0] || "";
-
-
-                    const nama =
-                        row[1] || "";
-
-
-                    const nik =
-                        row[2] || "";
-
-
-                    const pengaduan =
-                        row[5] || "";
-
-
-                    const bukti =
-                        row[7] || "";
-
-
-                    const status =
-                        row[8] ||
-                        "Diterima";
-
-
-                    let badge =
-                        "";
-
-
-                    if (
-                        status ===
-                        "Selesai"
-                    ) {
-
-                        badge =
-                            "🟢";
-
-                    }
-                    else if (
-                        status ===
-                        "Diproses"
-                    ) {
-
-                        badge =
-                            "🟡";
-
-                    }
-                    else {
-
-                        badge =
-                            "🔵";
-
-                    }
-
-
-                    let buktiHtml =
-                        "-";
-
-
-                    if (
-                        bukti &&
-                        String(bukti)
-                            .startsWith("http")
-                    ) {
-
-                        buktiHtml = `
-
-                            <a
-                                href="${escapeHtml(bukti)}"
-                                target="_blank">
-
-                                📎 Lihat
-
-                            </a>
-
-                        `;
-
-                    }
-
-
-                    const tr =
-                        document.createElement(
-                            "tr"
-                        );
-
-
-                    tr.innerHTML = `
-
-                        <td>
-                            ${escapeHtml(tanggal)}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(nama)}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(nik)}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(pengaduan)}
-                        </td>
-
-                        <td>
-                            ${badge}
-                            ${escapeHtml(status)}
-                        </td>
-
-                        <td>
-                            ${buktiHtml}
-                        </td>
-
-                        <td>
-
-                            <button
-                                onclick="bukaDetailPengaduan(${i}, ${rowIndex})">
-
-                                👁️ Detail
-
-                            </button>
-
-
-                            <button
-                                onclick="hapusPengaduanDirect(${rowIndex})">
-
-                                🗑️
-
-                            </button>
-
-                        </td>
-
-                    `;
-
-
-                    tbody.appendChild(
-                        tr
-                    );
-
-                }
-
-            }
-        )
-
-        .withFailureHandler(
-            function(err) {
-
-                showToast(
-                    "Gagal mengambil pengaduan: " +
-                    err.message,
-                    "error"
-                );
-
-            }
-        )
-
-        .getPengaduan(
-            token
-        );
-
+      }
+
+      let html = "";
+      // Catatan: getPengaduan() TIDAK punya baris header (langsung data),
+      // beda dari modul lain, karena data digabung dari 3 tab sekaligus.
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        // row: [Timestamp, Nama, NIK, Alamat, NoHP, KategoriPengaduan, Deskripsi, BuktiKejadian, Status]
+        const buktiHtml = row[7] && row[7].toString().startsWith("http")
+          ? `<a href="${row[7]}" target="_blank">📎 Lihat</a>`
+          : "-";
+
+        html += `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${row[0] || ''}</td>
+            <td>${row[1] || ''}</td>
+            <td>${row[2] || ''}</td>
+            <td>${row[4] || ''}</td>
+            <td>${row[5] || ''}</td>
+            <td>${row[8] || ''}</td>
+            <td class="aksi">
+              <button class="btn-edit" onclick="bukaDetailPengaduan(${i})">👁️ Detail</button>
+              <button class="btn-hapus" onclick="hapusPengaduanDirect(${i})">🗑️ Hapus</button>
+            </td>
+          </tr>`;
+      }
+      tbody.innerHTML = html;
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal memuat data Pengaduan: " + err.message, "error");
+    })
+    .getPengaduan(token);
 }
 
+function bukaDetailPengaduan(index){
+  const item = DATA_PENGADUAN_TERAKHIR[index];
+  if (!item) {
+    showToast("Data tidak ditemukan, coba muat ulang halaman.", "error");
+    return;
+  }
 
-// ============================================================
-// DETAIL
-// ============================================================
+  // Simpan kunci unik (timestamp+nik) baris yang aktif, dipakai saat Simpan/Hapus
+  PENGADUAN_AKTIF = { timestamp: item[0], nik: item[2] };
 
-function bukaDetailPengaduan(
-    cacheIndex,
-    rowIndex
-) {
+  $("detPengaduanTanggal").innerText = item[0] || "-";
+  $("detPengaduanNama").innerText = item[1] || "-";
+  $("detPengaduanNik").innerText = item[2] || "-";
+  $("detPengaduanHp").innerText = item[4] || "-";
+  $("detPengaduanAlamat").innerText = item[3] || "-";
+  $("detPengaduanLayanan").innerText = item[5] || "-";
+  $("detPengaduanJudul").innerText = item[5] || "-";
+  $("detPengaduanDeskripsi").innerText = item[6] || "Tidak ada deskripsi.";
 
-    const item =
-        DATA_PENGADUAN_CACHE[
-            cacheIndex
-        ];
+  const buktiDiv = $("detPengaduanBukti");
+  if (item[7] && item[7].toString().startsWith("http")) {
+    buktiDiv.innerHTML = `<a href="${item[7]}" target="_blank">📎 Lihat Bukti Kejadian</a>`;
+  } else {
+    buktiDiv.innerText = "Tidak ada bukti.";
+  }
 
-
-    if (!item) {
-
-        return;
-
-    }
-
-
-    ACTIVE_PENGADUAN_ROW =
-        rowIndex;
-
-
-    $("detTgl").innerText =
-        item[0] || "-";
-
-
-    $("detNama").innerText =
-        item[1] || "-";
-
-
-    $("detNik").innerText =
-        item[2] || "-";
-
-
-    $("detAlamat").innerText =
-        item[3] || "-";
-
-
-    $("detHp").innerText =
-        item[4] || "-";
-
-
-    $("detPengaduan").innerText =
-        item[5] || "-";
-
-
-    $("detDeskripsi").innerText =
-        item[6] ||
-        "Tidak ada deskripsi.";
-
-
-    const link =
-        $("detBukti");
-
-
-    const noBukti =
-        $("detBuktiTidakAda");
-
-
-    if (
-        item[7] &&
-        String(item[7])
-            .startsWith("http")
-    ) {
-
-        link.href =
-            item[7];
-
-        link.style.display =
-            "inline";
-
-        noBukti.style.display =
-            "none";
-
-    }
-    else {
-
-        link.style.display =
-            "none";
-
-        noBukti.style.display =
-            "inline";
-
-    }
-
-
-    $("selStatusAksi").value =
-        item[8] ||
-        "Diterima";
-
-
-    $("modalDetailPengaduan")
-        .style.display =
-        "block";
-
+  $("statusPengaduan").value = item[8] || "Diterima";
+  $("modalPengaduan").style.display = "flex";
 }
 
-
-// ============================================================
-// SIMPAN STATUS
-// ============================================================
-
-function simpanStatusPengaduan(
-    btn
-) {
-
-    const token =
-        getToken();
-
-
-    if (
-        !ACTIVE_PENGADUAN_ROW
-    ) {
-
-        return;
-
-    }
-
-
-    const status =
-        $("selStatusAksi")
-            .value;
-
-
-    if (
-        typeof toggleButtonLoading ===
-        "function"
-    ) {
-
-        toggleButtonLoading(
-            btn,
-            true
-        );
-
-    }
-
-
-    google.script.run
-
-        .withSuccessHandler(
-            function() {
-
-                if (
-                    typeof toggleButtonLoading ===
-                    "function"
-                ) {
-
-                    toggleButtonLoading(
-                        btn,
-                        false
-                    );
-
-                }
-
-
-                showToast(
-                    "Status berhasil diperbarui.",
-                    "success"
-                );
-
-
-                tutupDetailPengaduan();
-
-
-                loadPengaduan();
-
-            }
-        )
-
-        .withFailureHandler(
-            function(err) {
-
-                if (
-                    typeof toggleButtonLoading ===
-                    "function"
-                ) {
-
-                    toggleButtonLoading(
-                        btn,
-                        false
-                    );
-
-                }
-
-
-                showToast(
-                    "Gagal mengubah status: " +
-                    err.message,
-                    "error"
-                );
-
-            }
-        )
-
-        .updateStatusPengaduan(
-            token,
-            ACTIVE_PENGADUAN_ROW,
-            status
-        );
-
+function tutupModalPengaduan(){
+  $("modalPengaduan").style.display = "none";
+  PENGADUAN_AKTIF = null;
 }
 
+function simpanStatusPengaduan(btn){
+  if (!PENGADUAN_AKTIF) {
+    showToast("Tidak ada data aktif.", "error");
+    return;
+  }
 
-// ============================================================
-// HAPUS
-// ============================================================
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis. Silakan login kembali.", "error");
+    logout();
+    return;
+  }
 
-function hapusPengaduanDirect(
-    rowIndex
-) {
+  const statusBaru = $("statusPengaduan").value;
+  toggleButtonLoading(btn, true);
 
-    if (
-        !confirm(
-            "Yakin ingin menghapus pengaduan ini?"
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    const token =
-        getToken();
-
-
-    google.script.run
-
-        .withSuccessHandler(
-            function() {
-
-                showToast(
-                    "Pengaduan berhasil dihapus.",
-                    "success"
-                );
-
-
-                loadPengaduan();
-
-            }
-        )
-
-        .withFailureHandler(
-            function(err) {
-
-                showToast(
-                    "Gagal menghapus: " +
-                    err.message,
-                    "error"
-                );
-
-            }
-        )
-
-        .hapusPengaduan(
-            token,
-            rowIndex
-        );
-
+  google.script.run
+    .withSuccessHandler(function(){
+      toggleButtonLoading(btn, false, "💾 Simpan Status");
+      showToast("Status berhasil diperbarui.", "success");
+      tutupModalPengaduan();
+      loadPengaduan();
+      loadDashboard();
+    })
+    .withFailureHandler(function(err){
+      toggleButtonLoading(btn, false, "💾 Simpan Status");
+      showToast("Gagal mengubah status: " + err.message, "error");
+    })
+    .ubahStatusPengaduan(token, PENGADUAN_AKTIF.timestamp, PENGADUAN_AKTIF.nik, statusBaru);
 }
 
+function hapusPengaduanDirect(index){
+  const item = DATA_PENGADUAN_TERAKHIR[index];
+  if (!item) return;
 
-// ============================================================
-// TUTUP MODAL
-// ============================================================
+  if (!confirm("Yakin ingin menghapus pengaduan ini?")) return;
 
-function tutupDetailPengaduan() {
+  const token = getToken();
+  if (!token) {
+    logout();
+    return;
+  }
 
-    $("modalDetailPengaduan")
-        .style.display =
-        "none";
-
-    ACTIVE_PENGADUAN_ROW =
-        null;
-
+  google.script.run
+    .withSuccessHandler(function(){
+      showToast("Pengaduan berhasil dihapus.", "success");
+      loadPengaduan();
+      loadDashboard();
+    })
+    .withFailureHandler(function(err){
+      showToast("Gagal menghapus: " + err.message, "error");
+    })
+    .hapusPengaduan(token, item[0], item[2]);
 }
 
-
-// ============================================================
-// SEARCH
-// ============================================================
-
-function cariPengaduan() {
-
-    const input =
-        $("cariPengaduan");
-
-
-    const filter =
-        input.value
-            .toUpperCase();
-
-
-    const rows =
-        document.querySelectorAll(
-            "#tblPengaduan tbody tr"
-        );
-
-
-    rows.forEach(
-        function(row) {
-
-            row.style.display =
-                row.innerText
-                    .toUpperCase()
-                    .includes(filter)
-                    ? ""
-                    : "none";
-
-        }
-    );
-
+function cariDataPengaduan(){
+  const keyword = $("cariPengaduan").value.toLowerCase();
+  document.querySelectorAll("#tblPengaduan tbody tr").forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
+  });
 }
 
-
-// ============================================================
-// ESCAPE HTML
-// ============================================================
-
-function escapeHtml(
-    value
-) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-
-        return "";
-
-    }
-
-
-    return String(value)
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-
-}
 </script>

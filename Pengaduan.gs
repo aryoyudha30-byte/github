@@ -17,7 +17,7 @@ const STAGE_SHEETS_PENGADUAN = ["Diterima", "Diproses", "Selesai"];
 
 function getPengaduanPage(){
   return HtmlService
-    .createHtmlOutputFromFile("Pengaduan")
+    .createHtmlOutputFromFile("pengaduan")
     .getContent();
 }
 
@@ -101,4 +101,35 @@ function ubahStatusPengaduan(token, timestampAsli, nik, statusBaru){
   }
 
   throw new Error("Data pengaduan tidak ditemukan (mungkin sudah dipindahkan sebelumnya, coba muat ulang halaman).");
+}
+
+// ======================================
+// HAPUS PENGADUAN (dicari lewat Timestamp + NIK, sama seperti ubahStatusPengaduan)
+// ======================================
+function hapusPengaduan(token, timestampAsli, nik){
+  const session = verifySession(token);
+  if (!session) throw new Error("Sesi login tidak valid.");
+
+  for (let s = 0; s < STAGE_SHEETS_PENGADUAN.length; s++) {
+    const namaTab = STAGE_SHEETS_PENGADUAN[s];
+    const sh = getSheet(namaTab);
+    if (!sh) continue;
+
+    const values = sh.getDataRange().getValues();
+    for (let i = 1; i < values.length; i++) {
+      const tsCell = values[i][0];
+      const tsString = Object.prototype.toString.call(tsCell) === "[object Date]"
+        ? Utilities.formatDate(tsCell, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")
+        : tsCell.toString();
+
+      const nikCell = values[i][2] ? values[i][2].toString().trim() : "";
+
+      if (tsString === timestampAsli.toString().trim() && nikCell === nik.toString().trim()) {
+        sh.deleteRow(i + 1);
+        return true;
+      }
+    }
+  }
+
+  throw new Error("Data pengaduan tidak ditemukan.");
 }
