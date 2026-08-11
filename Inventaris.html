@@ -1,0 +1,108 @@
+<!-- =========================================================
+     INVENTARIS.HTML
+     ========================================================= -->
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h2>📦 Inventaris Desa</h2>
+      <p style="margin:4px 0 0; color:#666; font-size:14px;">
+        Pengelolaan data barang dan aset desa
+      </p>
+    </div>
+    <button onclick="bukaFormInventaris()">➕ Tambah Barang</button>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+    <input type="text" id="cariInventaris"
+           placeholder="🔍 Cari kode, nama barang, kategori, atau lokasi..."
+           onkeyup="cariDataInventaris()"
+           style="flex:1; min-width:250px;">
+    <button onclick="loadInventaris()">🔄 Refresh</button>
+  </div>
+
+  <div style="width:100%; overflow-x:auto;">
+    <table id="tblInventaris">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Kode</th>
+          <th>Nama Barang</th>
+          <th>Kategori</th>
+          <th>Jumlah</th>
+          <th>Satuan</th>
+          <th>Kondisi</th>
+          <th>Lokasi</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="9" style="text-align:center;">Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- =========================================================
+     MODAL TAMBAH / EDIT INVENTARIS
+     ========================================================= -->
+<div id="modalInventaris" class="modal" style="display:none;">
+  <div class="modal-content" style="max-width:650px; max-height:90vh; overflow-y:auto;">
+    <h3 id="judulModalInventaris">➕ Tambah Barang</h3>
+    <hr>
+
+    <input type="hidden" id="inventarisId">
+
+    <label><strong>Nama Barang</strong></label>
+    <input type="text" id="inventarisNama" placeholder="Nama barang"
+           style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Kategori</strong></label>
+    <select id="inventarisKategori" style="width:100%; margin-bottom:12px;">
+      <option value="">-- Pilih Kategori --</option>
+      <option>Elektronik</option>
+      <option>Furniture</option>
+      <option>Kendaraan</option>
+      <option>Peralatan Kantor</option>
+      <option>Infrastruktur</option>
+      <option>Lainnya</option>
+    </select>
+
+    <label><strong>Jumlah</strong></label>
+    <input type="number" id="inventarisJumlah" min="0"
+           style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Satuan</strong></label>
+    <input type="text" id="inventarisSatuan" value="Unit"
+           style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Kondisi</strong></label>
+    <select id="inventarisKondisi" style="width:100%; margin-bottom:12px;">
+      <option value="Baik">🟢 Baik</option>
+      <option value="Rusak Ringan">🟡 Rusak Ringan</option>
+      <option value="Rusak Berat">🔴 Rusak Berat</option>
+    </select>
+
+    <label><strong>Lokasi</strong></label>
+    <input type="text" id="inventarisLokasi" placeholder="Lokasi barang"
+           style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Tahun Perolehan</strong></label>
+    <input type="number" id="inventarisTahun" placeholder="2026"
+           style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Sumber Dana</strong></label>
+    <input type="text" id="inventarisSumberDana" placeholder="APBDes / Hibah / dll."
+           style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Keterangan</strong></label>
+    <textarea id="inventarisKeterangan" rows="4"
+              style="width:100%; margin-bottom:15px;"></textarea>
+
+    <div class="modal-actions">
+      <button onclick="simpanInventaris(this)">💾 Simpan</button>
+      <button onclick="tutupModalInventaris()">❌ Batal</button>
+    </div>
+  </div>
+</div>

@@ -160,22 +160,24 @@ function showDashboard(){
     .getDashboardPage();
 }
 
-function loadDashboard(){
-  google.script.run
-    .withSuccessHandler(function(data){
-      $("totalPenduduk").innerText = data.penduduk;
-      $("totalKK").innerText = data.kk;
-      $("totalSuratMasuk").innerText = data.suratMasuk;
-      $("totalSuratKeluar").innerText = data.suratKeluar;
-      $("totalPengaduan").innerText = data.pengaduan;
-      $("totalAgenda").innerText = data.agenda;
-    })
-    .withFailureHandler(function(err){
-      console.error("Gagal memuat dashboard:", err.message);
-    })
-    .getDashboardStats();
-}
-
+ function loadDashboard(){
+     google.script.run
+       .withSuccessHandler(function(data){
+         $("totalPenduduk").innerText = data.penduduk;
+         $("totalKK").innerText = data.kk;
+         $("totalSuratMasuk").innerText = data.suratMasuk;
+         $("totalSuratKeluar").innerText = data.suratKeluar;
+         $("totalPelayanan").innerText = data.pelayananSurat;
+         $("totalPengaduan").innerText = data.pengaduan;
+         $("totalAgenda").innerText = data.agenda;
+         $("totalInventaris").innerText = data.inventaris;
+       })
+       .withFailureHandler(function(err){
+         console.error("Gagal memuat dashboard:", err.message);
+       })
+       .getDashboardStats();
+   }
+   
 function loadAktivitasTerbaru(){
   const token = getToken();
   if (!token) return;
@@ -1515,6 +1517,403 @@ function getErrorMessage(err) {
   if (!err) return "Terjadi kesalahan.";
   if (err.message) return err.message;
   return String(err);
+}
+
+// ============================================================
+// MODUL AGENDA
+// ============================================================
+
+let DATA_AGENDA_TERAKHIR = [];
+let AGENDA_MODE = "tambah";
+
+function showAgenda() {
+  setActiveMenu("menuAgenda");
+
+  google.script.run
+    .withSuccessHandler(function (html) {
+      $("content").innerHTML = html;
+      loadAgenda();
+    })
+    .withFailureHandler(function (err) {
+      showToast("Gagal membuka Agenda: " + getErrorMessage(err), "error");
+    })
+    .getAgendaPage();
+}
+
+function loadAgenda() {
+  const token = getToken();
+  if (!token) {
+    showToast("Sesi login telah habis.", "error");
+    logout();
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (data) {
+      DATA_AGENDA_TERAKHIR = data || [];
+      const tbody = document.querySelector("#tblAgenda tbody");
+      if (!tbody) return;
+
+      if (!data || data.length <= 1) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Belum ada agenda.</td></tr>`;
+        return;
+      }
+
+      let html = "";
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const id = row[0];
+        const status = row[6] || "Terjadwal";
+
+        let badge = "";
+        if (status === "Terjadwal") {
+          badge = '<span class="status-badge status-success">🟢 Terjadwal</span>';
+        } else if (status === "Berlangsung") {
+          badge = '<span class="status-badge status-warning">🟡 Berlangsung</span>';
+        } else if (status === "Selesai") {
+          badge = '<span class="status-badge status-info">🔵 Selesai</span>';
+        } else {
+          badge = '<span class="status-badge status-danger">🔴 Dibatalkan</span>';
+        }
+
+        html += `
+          <tr>
+            <td>${i}</td>
+            <td>${row[1] || ""}</td>
+            <td>${row[2] || ""}</td>
+            <td>${row[3] || ""}</td>
+            <td>${row[4] || ""}</td>
+            <td>${row[5] || ""}</td>
+            <td>${badge}</td>
+            <td>
+              <button class="btn-edit" onclick="editDataAgenda(${i})">✏️ Edit</button>
+              <button class="btn-hapus" onclick="hapusDataAgenda(${id})">🗑️ Hapus</button>
+            </td>
+          </tr>
+        `;
+      }
+
+      tbody.innerHTML = html;
+    })
+    .withFailureHandler(function (err) {
+      showToast("Gagal memuat Agenda: " + getErrorMessage(err), "error");
+    })
+    .getAgenda(token);
+}
+
+function bukaFormAgenda() {
+  AGENDA_MODE = "tambah";
+  $("judulModalAgenda").innerText = "➕ Tambah Agenda";
+  $("agendaId").value = "";
+  $("agendaTanggal").value = "";
+  $("agendaWaktu").value = "";
+  $("agendaNama").value = "";
+  $("agendaTempat").value = "";
+  $("agendaPenanggungJawab").value = "";
+  $("agendaStatus").value = "Terjadwal";
+  $("agendaKeterangan").value = "";
+  $("modalAgenda").style.display = "flex";
+}
+
+function editDataAgenda(index) {
+  const row = DATA_AGENDA_TERAKHIR[index];
+  if (!row) {
+    showToast("Data agenda tidak ditemukan.", "error");
+    return;
+  }
+
+  AGENDA_MODE = "edit";
+  $("judulModalAgenda").innerText = "✏️ Edit Agenda";
+  $("agendaId").value = row[0] || "";
+
+  // Konversi tanggal dd/MM/yyyy -> yyyy-MM-dd (format input type=date)
+  let tanggal = row[1] || "";
+  if (tanggal.indexOf("/") !== -1) {
+    const p = tanggal.split("/");
+    if (p.length === 3) {
+      tanggal = p[2] + "-" + p[1].padStart(2, "0") + "-" + p[0].padStart(2, "0");
+    }
+  }
+  $("agendaTanggal").value = tanggal;
+
+  $("agendaWaktu").value = row[2] || "";
+  $("agendaNama").value = row[3] || "";
+  $("agendaTempat").value = row[4] || "";
+  $("agendaPenanggungJawab").value = row[5] || "";
+  $("agendaStatus").value = row[6] || "Terjadwal";
+  $("agendaKeterangan").value = row[7] || "";
+  $("modalAgenda").style.display = "flex";
+}
+
+function simpanAgenda(btn) {
+  const token = getToken();
+  if (!token) {
+    logout();
+    return;
+  }
+
+  const data = {
+    tanggal: $("agendaTanggal").value,
+    waktu: $("agendaWaktu").value,
+    namaAgenda: $("agendaNama").value.trim(),
+    tempat: $("agendaTempat").value.trim(),
+    penanggungJawab: $("agendaPenanggungJawab").value.trim(),
+    status: $("agendaStatus").value,
+    keterangan: $("agendaKeterangan").value.trim()
+  };
+
+  toggleButtonLoading(btn, true);
+
+  if (AGENDA_MODE === "edit") {
+    google.script.run
+      .withSuccessHandler(function () {
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Agenda berhasil diperbarui.", "success");
+        tutupModalAgenda();
+        loadAgenda();
+      })
+      .withFailureHandler(function (err) {
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal: " + getErrorMessage(err), "error");
+      })
+      .editAgenda(token, $("agendaId").value, data);
+  } else {
+    google.script.run
+      .withSuccessHandler(function () {
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Agenda berhasil ditambahkan.", "success");
+        tutupModalAgenda();
+        loadAgenda();
+      })
+      .withFailureHandler(function (err) {
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal: " + getErrorMessage(err), "error");
+      })
+      .tambahAgenda(token, data);
+  }
+}
+
+function hapusDataAgenda(id) {
+  if (!confirm("Yakin ingin menghapus agenda ini?")) return;
+
+  const token = getToken();
+
+  google.script.run
+    .withSuccessHandler(function () {
+      showToast("Agenda berhasil dihapus.", "success");
+      loadAgenda();
+    })
+    .withFailureHandler(function (err) {
+      showToast("Gagal menghapus agenda: " + getErrorMessage(err), "error");
+    })
+    .hapusAgenda(token, id);
+}
+
+function tutupModalAgenda() {
+  $("modalAgenda").style.display = "none";
+}
+
+function cariDataAgenda() {
+  const keyword = $("cariAgenda").value.toLowerCase();
+
+  document.querySelectorAll("#tblAgenda tbody tr").forEach(function (row) {
+    row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
+  });
+}
+
+
+// ============================================================
+// MODUL INVENTARIS
+// ============================================================
+
+let DATA_INVENTARIS_TERAKHIR = [];
+let INVENTARIS_MODE = "tambah";
+
+function showInventaris() {
+  setActiveMenu("menuInventaris");
+
+  google.script.run
+    .withSuccessHandler(function (html) {
+      $("content").innerHTML = html;
+      loadInventaris();
+    })
+    .withFailureHandler(function (err) {
+      showToast("Gagal membuka Inventaris: " + getErrorMessage(err), "error");
+    })
+    .getInventarisPage();
+}
+
+function loadInventaris() {
+  const token = getToken();
+  if (!token) {
+    logout();
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (data) {
+      DATA_INVENTARIS_TERAKHIR = data || [];
+      const tbody = document.querySelector("#tblInventaris tbody");
+      if (!tbody) return;
+
+      if (!data || data.length <= 1) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">Belum ada data inventaris.</td></tr>`;
+        return;
+      }
+
+      let html = "";
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+
+        let badge = "";
+        if (row[6] === "Baik") {
+          badge = '<span class="status-badge status-success">🟢 Baik</span>';
+        } else if (row[6] === "Rusak Ringan") {
+          badge = '<span class="status-badge status-warning">🟡 Rusak Ringan</span>';
+        } else {
+          badge = '<span class="status-badge status-danger">🔴 Rusak Berat</span>';
+        }
+
+        html += `
+          <tr>
+            <td>${i}</td>
+            <td>${row[1] || ""}</td>
+            <td>${row[2] || ""}</td>
+            <td>${row[3] || ""}</td>
+            <td>${row[4] || 0}</td>
+            <td>${row[5] || ""}</td>
+            <td>${badge}</td>
+            <td>${row[7] || ""}</td>
+            <td>
+              <button class="btn-edit" onclick="editDataInventaris(${i})">✏️ Edit</button>
+              <button class="btn-hapus" onclick="hapusDataInventaris(${row[0]})">🗑️ Hapus</button>
+            </td>
+          </tr>
+        `;
+      }
+
+      tbody.innerHTML = html;
+    })
+    .withFailureHandler(function (err) {
+      showToast("Gagal memuat Inventaris: " + getErrorMessage(err), "error");
+    })
+    .getInventaris(token);
+}
+
+function bukaFormInventaris() {
+  INVENTARIS_MODE = "tambah";
+  $("judulModalInventaris").innerText = "➕ Tambah Barang";
+  $("inventarisId").value = "";
+  $("inventarisNama").value = "";
+  $("inventarisKategori").value = "";
+  $("inventarisJumlah").value = "";
+  $("inventarisSatuan").value = "Unit";
+  $("inventarisKondisi").value = "Baik";
+  $("inventarisLokasi").value = "";
+  $("inventarisTahun").value = "";
+  $("inventarisSumberDana").value = "";
+  $("inventarisKeterangan").value = "";
+  $("modalInventaris").style.display = "flex";
+}
+
+function editDataInventaris(index) {
+  const row = DATA_INVENTARIS_TERAKHIR[index];
+  if (!row) {
+    showToast("Data barang tidak ditemukan.", "error");
+    return;
+  }
+
+  INVENTARIS_MODE = "edit";
+  $("judulModalInventaris").innerText = "✏️ Edit Barang";
+  $("inventarisId").value = row[0] || "";
+  $("inventarisNama").value = row[2] || "";
+  $("inventarisKategori").value = row[3] || "";
+  $("inventarisJumlah").value = row[4] || 0;
+  $("inventarisSatuan").value = row[5] || "Unit";
+  $("inventarisKondisi").value = row[6] || "Baik";
+  $("inventarisLokasi").value = row[7] || "";
+  $("inventarisTahun").value = row[8] || "";
+  $("inventarisSumberDana").value = row[9] || "";
+  $("inventarisKeterangan").value = row[10] || "";
+  $("modalInventaris").style.display = "flex";
+}
+
+function simpanInventaris(btn) {
+  const token = getToken();
+  if (!token) {
+    logout();
+    return;
+  }
+
+  const data = {
+    namaBarang: $("inventarisNama").value.trim(),
+    kategori: $("inventarisKategori").value,
+    jumlah: $("inventarisJumlah").value,
+    satuan: $("inventarisSatuan").value.trim(),
+    kondisi: $("inventarisKondisi").value,
+    lokasi: $("inventarisLokasi").value.trim(),
+    tahunPerolehan: $("inventarisTahun").value,
+    sumberDana: $("inventarisSumberDana").value.trim(),
+    keterangan: $("inventarisKeterangan").value.trim()
+  };
+
+  toggleButtonLoading(btn, true);
+
+  if (INVENTARIS_MODE === "edit") {
+    google.script.run
+      .withSuccessHandler(function () {
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Barang berhasil diperbarui.", "success");
+        tutupModalInventaris();
+        loadInventaris();
+      })
+      .withFailureHandler(function (err) {
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal: " + getErrorMessage(err), "error");
+      })
+      .editInventaris(token, $("inventarisId").value, data);
+  } else {
+    google.script.run
+      .withSuccessHandler(function () {
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Barang berhasil ditambahkan.", "success");
+        tutupModalInventaris();
+        loadInventaris();
+      })
+      .withFailureHandler(function (err) {
+        toggleButtonLoading(btn, false, "💾 Simpan");
+        showToast("Gagal: " + getErrorMessage(err), "error");
+      })
+      .tambahInventaris(token, data);
+  }
+}
+
+function hapusDataInventaris(id) {
+  if (!confirm("Yakin ingin menghapus barang ini?")) return;
+
+  const token = getToken();
+
+  google.script.run
+    .withSuccessHandler(function () {
+      showToast("Barang berhasil dihapus.", "success");
+      loadInventaris();
+    })
+    .withFailureHandler(function (err) {
+      showToast("Gagal menghapus barang: " + getErrorMessage(err), "error");
+    })
+    .hapusInventaris(token, id);
+}
+
+function tutupModalInventaris() {
+  $("modalInventaris").style.display = "none";
+}
+
+function cariDataInventaris() {
+  const keyword = $("cariInventaris").value.toLowerCase();
+
+  document.querySelectorAll("#tblInventaris tbody tr").forEach(function (row) {
+    row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
+  });
 }
 
 </script>

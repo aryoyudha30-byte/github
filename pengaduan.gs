@@ -53,10 +53,28 @@ function findPengaduanRow(sheet, timestamp, nik) {
 
 function normalizeTimestamp(value) {
   if (!value) return "";
+
+  // Kasus 1: value adalah objek Date asli dari sheet
   if (Object.prototype.toString.call(value) === "[object Date]") {
-    return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm");
   }
-  return String(value).trim().replace("T", " ");
+
+  const str = String(value).trim();
+
+  // Kasus 2: value berformat "dd/MM/yyyy HH:mm" (hasil format dari getPengaduan())
+  const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/);
+  if (match) {
+    const [, dd, mm, yyyy, hh, min] = match;
+    return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+  }
+
+  // Kasus 3: value berupa string ISO ("2026-08-09T20:59:33.000Z" dsb) atau format lain
+  const parsed = new Date(str.replace("T", " "));
+  if (!isNaN(parsed.getTime())) {
+    return Utilities.formatDate(parsed, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm");
+  }
+
+  return str;
 }
 
 // ============================================================

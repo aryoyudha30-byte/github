@@ -1,0 +1,91 @@
+<!-- =========================================================
+     AGENDA.HTML — MODUL AGENDA
+     ========================================================= -->
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h2>📅 Agenda Desa</h2>
+      <p style="margin:4px 0 0; color:#666; font-size:14px;">
+        Pengelolaan agenda dan kegiatan desa
+      </p>
+    </div>
+    <button onclick="bukaFormAgenda()">➕ Tambah Agenda</button>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+    <input type="text" id="cariAgenda"
+           placeholder="🔍 Cari agenda, tempat, atau penanggung jawab..."
+           onkeyup="cariDataAgenda()"
+           style="flex:1; min-width:250px;">
+    <button onclick="loadAgenda()">🔄 Refresh</button>
+  </div>
+
+  <div style="width:100%; overflow-x:auto;">
+    <table id="tblAgenda">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Tanggal</th>
+          <th>Waktu</th>
+          <th>Agenda</th>
+          <th>Tempat</th>
+          <th>Penanggung Jawab</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="8" style="text-align:center;">Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- =========================================================
+     MODAL TAMBAH / EDIT AGENDA
+     ========================================================= -->
+<div id="modalAgenda" class="modal" style="display:none;">
+  <div class="modal-content" style="max-width:650px; max-height:90vh; overflow-y:auto;">
+    <h3 id="judulModalAgenda">➕ Tambah Agenda</h3>
+    <hr>
+
+    <input type="hidden" id="agendaId">
+
+    <label><strong>Tanggal</strong></label>
+    <input type="date" id="agendaTanggal" style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Waktu</strong></label>
+    <input type="time" id="agendaWaktu" style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Nama Agenda</strong></label>
+    <input type="text" id="agendaNama" placeholder="Contoh: Rapat Desa"
+           style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Tempat</strong></label>
+    <input type="text" id="agendaTempat" placeholder="Contoh: Balai Desa"
+           style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Penanggung Jawab</strong></label>
+    <input type="text" id="agendaPenanggungJawab" placeholder="Nama penanggung jawab"
+           style="width:100%; margin-bottom:12px;">
+
+    <label><strong>Status</strong></label>
+    <select id="agendaStatus" style="width:100%; margin-bottom:12px;">
+      <option value="Terjadwal">🟢 Terjadwal</option>
+      <option value="Berlangsung">🟡 Berlangsung</option>
+      <option value="Selesai">🔵 Selesai</option>
+      <option value="Dibatalkan">🔴 Dibatalkan</option>
+    </select>
+
+    <label><strong>Keterangan</strong></label>
+    <textarea id="agendaKeterangan" rows="4" placeholder="Keterangan tambahan..."
+              style="width:100%; margin-bottom:15px;"></textarea>
+
+    <div class="modal-actions" style="margin-top:15px;">
+      <button onclick="simpanAgenda(this)">💾 Simpan</button>
+      <button onclick="tutupModalAgenda()">❌ Batal</button>
+    </div>
+  </div>
+</div>

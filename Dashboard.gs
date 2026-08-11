@@ -20,13 +20,27 @@ function getDashboardStats() {
     kk: getJumlahData("KK"),
     suratMasuk: getJumlahData("SuratMasuk"),
     suratKeluar: getJumlahData("SuratKeluar"),
-    pengaduan: getJumlahData("Pengaduan"),
-    agenda: getJumlahData("Agenda")
+    pelayananSurat: getJumlahData("PelayananSurat"),
+    pengaduan: getJumlahDataForm("Pengaduan"),
+    agenda: getJumlahData("Agenda"),
+    inventaris: getJumlahData("Inventaris")
   };
 }
 
 function getJumlahData(namaSheet) {
   const sheet = getSheet(namaSheet);
+  if (sheet == null) return 0;
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return 0;
+
+  return lastRow - 1;
+}
+
+// Sama seperti getJumlahData(), tapi membaca dari spreadsheet FORM
+// (SPREADSHEET_ID_FORM), tempat data Pengaduan sebenarnya tersimpan.
+function getJumlahDataForm(namaSheet) {
+  const sheet = getFormSheet(namaSheet);
   if (sheet == null) return 0;
 
   const lastRow = sheet.getLastRow();
