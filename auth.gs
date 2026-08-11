@@ -91,3 +91,50 @@ function getAktivitasTerbaru(token) {
     detail: r[3]
   }));
 }
+
+// ============================================================
+// LOGOUT / INVALIDASI SESSION (SERVER-SIDE)
+// ============================================================
+function logoutSession(token) {
+  if (!token) return true;
+
+  try {
+    const sessionData = CacheService.getScriptCache().get(token);
+
+    if (sessionData) {
+      const session = JSON.parse(sessionData);
+      logActivity(session.username, "LOGOUT", "User keluar dari sistem");
+    }
+
+    // Cabut token dari server -- setelah ini token TIDAK BISA dipakai lagi,
+    // walaupun browser masih menyimpannya di localStorage.
+    CacheService.getScriptCache().remove(token);
+
+    return true;
+  } catch (error) {
+    // Tetap anggap logout berhasil di sisi client walau ada error server
+    return true;
+  }
+}
+
+// ============================================================
+// HAK AKSES BERDASARKAN ROLE (dipakai mulai Tahap 3, opsional dipakai sekarang)
+// Contoh pemakaian di modul lain nanti:
+//   const session = requireRole(token, ["administrator"]);
+// ============================================================
+function requireRole(token, allowedRoles) {
+  const session = verifySession(token);
+  if (!session) {
+    throw new Error("Sesi login tidak valid. Silakan login kembali.");
+  }
+
+  const userRole = String(session.role || "").trim().toLowerCase();
+  const allowed = allowedRoles.some(r => String(r).trim().toLowerCase() === userRole);
+
+  if (!allowed) {
+    logActivity(session.username || "-", "ACCESS_DENIED", "Akses ditolak. Role: " + (session.role || "-"));
+    throw new Error("Anda tidak memiliki hak akses untuk melakukan tindakan ini.");
+  }
+
+  return session;
+}

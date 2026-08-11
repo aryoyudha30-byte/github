@@ -135,11 +135,33 @@ function login(){
 }
 
 function logout(){
-  clearSession();
-  CURRENT_USER = null;
-  localStorage.removeItem('CURRENT_USER');
-  location.reload();
-}
+       const token = getToken();
+ 
+       if (!token) {
+         clearSession();
+         CURRENT_USER = null;
+         localStorage.removeItem('CURRENT_USER');
+         location.reload();
+         return;
+       }
+ 
+       google.script.run
+         .withSuccessHandler(function(){
+           clearSession();
+           CURRENT_USER = null;
+           localStorage.removeItem('CURRENT_USER');
+           location.reload();
+         })
+         .withFailureHandler(function(err){
+           // Walaupun server gagal, tetap keluarkan user dari browser
+           console.error("Logout server gagal:", err);
+           clearSession();
+           CURRENT_USER = null;
+           localStorage.removeItem('CURRENT_USER');
+           location.reload();
+         })
+         .logoutSession(token);
+     }
 
 // ==========================================
 // DASHBOARD
@@ -177,7 +199,7 @@ function showDashboard(){
        })
        .getDashboardStats();
    }
-   
+
 function loadAktivitasTerbaru(){
   const token = getToken();
   if (!token) return;
@@ -1914,6 +1936,36 @@ function cariDataInventaris() {
   document.querySelectorAll("#tblInventaris tbody tr").forEach(function (row) {
     row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
   });
+}
+
+// ============================================================
+// LOGOUT / INVALIDASI SESSION
+// ============================================================
+function logoutSession(token) {
+  if (!token) return true;
+
+  try {
+    const sessionData = CacheService.getScriptCache().get(token);
+
+    if (sessionData) {
+      const session = JSON.parse(sessionData);
+
+      logActivity(
+        session.username,
+        "LOGOUT",
+        "User keluar dari sistem"
+      );
+    }
+
+    // Cabut token server-side
+    CacheService.getScriptCache().remove(token);
+
+    return true;
+
+  } catch (error) {
+    // Tetap anggap logout berhasil di sisi client
+    return true;
+  }
 }
 
 </script>
