@@ -8,7 +8,7 @@
 // Ambil Data Surat Masuk
 // ======================================
 function getSuratMasuk(token){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if(!session){
     throw new Error("Sesi login tidak valid.");
   }
@@ -38,7 +38,7 @@ function getSuratMasuk(token){
 // khusus di Drive, kembalikan link filenya untuk disimpan ke sheet.
 // ======================================
 function uploadFileSurat(token, base64Data, fileName, mimeType){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if(!session){
     throw new Error("Sesi login tidak valid.");
   }
@@ -66,7 +66,7 @@ function getOrCreateFolderSuratMasuk(){
 // Tambah Surat Masuk
 // ======================================
 function tambahSuratMasuk(token,data){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if(!session){
     throw new Error("Sesi login tidak valid.");
   }
@@ -119,7 +119,7 @@ function tambahSuratMasuk(token,data){
 // Edit Surat Masuk
 // ======================================
 function editSuratMasuk(token,id,data){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if(!session){
     throw new Error("Sesi login tidak valid.");
   }
@@ -175,7 +175,7 @@ function editSuratMasuk(token,id,data){
 // Hapus Surat Masuk
 // ======================================
 function hapusSuratMasuk(token,id){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if(!session){
     throw new Error("Sesi login tidak valid.");
   }

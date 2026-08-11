@@ -10,6 +10,8 @@ const TRACKER_NIK_COL = 3;      // Kolom C = NIK di tracker
 // AMBIL SEMUA DATA PENGADUAN
 // ============================================================
 function getPengaduan(token) {
+  requireRole(token, ["administrator", "petugas pelayanan"]);
+
   const sheet = getFormSheet(PENGADUAN_SHEET_NAME);
   if (!sheet) throw new Error('Sheet "Pengaduan" tidak ditemukan.');
   
@@ -81,6 +83,8 @@ function normalizeTimestamp(value) {
 // UBAH STATUS PENGADUAN + SINCRON TRACKER
 // ============================================================
 function ubahStatusPengaduan(token, timestamp, nik, statusBaru) {
+  requireRole(token, ["administrator", "petugas pelayanan"]);
+
   const statusValid = ["Diterima", "Diproses", "Selesai"];
   if (statusValid.indexOf(statusBaru) === -1) throw new Error("Status tidak valid.");
   
@@ -110,6 +114,8 @@ function ubahStatusPengaduan(token, timestamp, nik, statusBaru) {
 // HAPUS PENGADUAN
 // ============================================================
 function hapusPengaduan(token, timestamp, nik) {
+  requireRole(token, ["administrator", "petugas pelayanan"]);
+
   const sheet = getFormSheet(PENGADUAN_SHEET_NAME);
   if (!sheet) throw new Error('Sheet "Pengaduan" tidak ditemukan.');
   

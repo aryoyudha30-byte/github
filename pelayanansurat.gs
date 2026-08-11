@@ -19,7 +19,7 @@ function getOrCreateFolderPelayanan(){
 }
 
 function uploadFilePelayanan(token, base64Data, fileName, mimeType){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const folder = getOrCreateFolderPelayanan();
@@ -31,7 +31,7 @@ function uploadFilePelayanan(token, base64Data, fileName, mimeType){
 }
 
 function getPelayananSurat(token){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("PelayananSurat");
@@ -49,7 +49,7 @@ function getPelayananSurat(token){
 }
 
 function tambahPelayananSurat(token, data){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("PelayananSurat");
@@ -89,7 +89,7 @@ function tambahPelayananSurat(token, data){
 }
 
 function editPelayananSurat(token, id, data){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("PelayananSurat");
@@ -130,7 +130,7 @@ function editPelayananSurat(token, id, data){
 }
 
 function hapusPelayananSurat(token, id){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("PelayananSurat");

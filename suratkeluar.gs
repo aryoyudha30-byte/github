@@ -52,7 +52,7 @@ function validasiSuratKeluar_(data){
 // Upload File Lampiran Surat Keluar
 // ======================================
 function uploadFileSuratKeluar(token, base64Data, fileName, mimeType){
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   if(!session){
     throw new Error("Sesi login tidak valid.");
   }
@@ -77,10 +77,7 @@ function getOrCreateFolderSuratKeluar(){
 // Ambil Data
 // ======================================
 function getSuratKeluar(token){
-  const session=verifySession(token);
-  if(!session){
-    throw new Error("Sesi login tidak valid.");
-  }
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   const sh=getSheet("SuratKeluar");
   if(!sh){
     throw new Error("Sheet SuratKeluar tidak ditemukan.");
@@ -104,10 +101,7 @@ function tambahSuratKeluar(token,data){
   const lock=LockService.getScriptLock();
   lock.waitLock(30000);
   try{
-    const session=verifySession(token);
-    if(!session){
-      throw new Error("Sesi login tidak valid.");
-    }
+    const session = requireRole(token, ["administrator", "petugas pelayanan"]);
     validasiSuratKeluar_(data);
 
     const sh=getSheet("SuratKeluar");
@@ -158,10 +152,7 @@ function editSuratKeluar(token,id,data){
   const lock=LockService.getScriptLock();
   lock.waitLock(30000);
   try{
-    const session=verifySession(token);
-    if(!session){
-      throw new Error("Sesi login tidak valid.");
-    }
+    const session = requireRole(token, ["administrator", "petugas pelayanan"]);
     validasiSuratKeluar_(data);
 
     const sh=getSheet("SuratKeluar");
@@ -211,10 +202,7 @@ function editSuratKeluar(token,id,data){
 // Hapus
 // ======================================
 function hapusSuratKeluar(token,id){
-  const session=verifySession(token);
-  if(!session){
-    throw new Error("Sesi login tidak valid.");
-  }
+  const session = requireRole(token, ["administrator", "petugas pelayanan"]);
   const sh=getSheet("SuratKeluar");
   const values=sh.getDataRange().getValues();
   for(let i=1;i<values.length;i++){

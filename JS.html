@@ -183,6 +183,7 @@ function showDashboard(){
 }
 
  function loadDashboard(){
+     const token = getToken();
      google.script.run
        .withSuccessHandler(function(data){
          $("totalPenduduk").innerText = data.penduduk;
@@ -197,7 +198,7 @@ function showDashboard(){
        .withFailureHandler(function(err){
          console.error("Gagal memuat dashboard:", err.message);
        })
-       .getDashboardStats();
+       .getDashboardStats(token);
    }
 
 function loadAktivitasTerbaru(){
@@ -1936,36 +1937,6 @@ function cariDataInventaris() {
   document.querySelectorAll("#tblInventaris tbody tr").forEach(function (row) {
     row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
   });
-}
-
-// ============================================================
-// LOGOUT / INVALIDASI SESSION
-// ============================================================
-function logoutSession(token) {
-  if (!token) return true;
-
-  try {
-    const sessionData = CacheService.getScriptCache().get(token);
-
-    if (sessionData) {
-      const session = JSON.parse(sessionData);
-
-      logActivity(
-        session.username,
-        "LOGOUT",
-        "User keluar dari sistem"
-      );
-    }
-
-    // Cabut token server-side
-    CacheService.getScriptCache().remove(token);
-
-    return true;
-
-  } catch (error) {
-    // Tetap anggap logout berhasil di sisi client
-    return true;
-  }
 }
 
 </script>

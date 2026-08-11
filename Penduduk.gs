@@ -6,7 +6,7 @@
 // Ambil Data Penduduk
 // ===============================
 function getPenduduk(token) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) {
     throw new Error("Sesi login tidak valid atau sudah kadaluarsa. Silakan login ulang.");
   }
@@ -53,7 +53,7 @@ function validasiDataPenduduk(data) {
 // Tambah Penduduk
 // ===============================
 function tambahPenduduk(token, data) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) {
     throw new Error("Sesi login tidak valid atau sudah kadaluarsa.");
   }
@@ -101,7 +101,7 @@ function tambahPenduduk(token, data) {
 // Edit Penduduk (BARU)
 // ===============================
 function editPenduduk(token, id, data) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) {
     throw new Error("Sesi login tidak valid atau sudah kadaluarsa.");
   }
@@ -153,7 +153,7 @@ function editPenduduk(token, id, data) {
 // Hapus Penduduk
 // ===============================
 function hapusPenduduk(token, id) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) {
     throw new Error("Sesi login tidak valid atau sudah kadaluarsa.");
   }

@@ -29,7 +29,7 @@ function getInventarisPage() {
 // GET DATA
 // ============================================================
 function getInventaris(token) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("Inventaris");
@@ -52,7 +52,7 @@ function getInventaris(token) {
 // TAMBAH
 // ============================================================
 function tambahInventaris(token, data) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("Inventaris");
@@ -94,7 +94,7 @@ function tambahInventaris(token, data) {
 // EDIT
 // ============================================================
 function editInventaris(token, id, data) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("Inventaris");
@@ -133,7 +133,7 @@ function editInventaris(token, id, data) {
 // HAPUS
 // ============================================================
 function hapusInventaris(token, id) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("Inventaris");

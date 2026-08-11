@@ -8,7 +8,7 @@
 // Ambil Data KK
 // ===============================
 function getKK(token) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) {
     throw new Error("Sesi login tidak valid atau sudah kadaluarsa. Silakan login ulang.");
   }
@@ -53,7 +53,7 @@ function validasiDataKK(data) {
 // Tambah KK
 // ===============================
 function tambahKK(token, data) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) {
     throw new Error("Sesi login tidak valid atau sudah kadaluarsa.");
   }
@@ -97,7 +97,7 @@ function tambahKK(token, data) {
 // Edit KK
 // ===============================
 function editKK(token, id, data) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) {
     throw new Error("Sesi login tidak valid atau sudah kadaluarsa.");
   }
@@ -142,7 +142,7 @@ function editKK(token, id, data) {
 // Hapus KK
 // ===============================
 function hapusKK(token, id) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) {
     throw new Error("Sesi login tidak valid atau sudah kadaluarsa.");
   }

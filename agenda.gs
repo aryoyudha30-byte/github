@@ -29,7 +29,7 @@ function getAgendaPage() {
 // MENGAMBIL DATA AGENDA
 // ============================================================
 function getAgenda(token) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("Agenda");
@@ -56,7 +56,7 @@ function getAgenda(token) {
 // TAMBAH AGENDA
 // ============================================================
 function tambahAgenda(token, data) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("Agenda");
@@ -94,7 +94,7 @@ function tambahAgenda(token, data) {
 // EDIT AGENDA
 // ============================================================
 function editAgenda(token, id, data) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("Agenda");
@@ -132,7 +132,7 @@ function editAgenda(token, id, data) {
 // HAPUS AGENDA
 // ============================================================
 function hapusAgenda(token, id) {
-  const session = verifySession(token);
+  const session = requireRole(token, ["administrator", "sekretaris kaur"]);
   if (!session) throw new Error("Sesi login tidak valid.");
 
   const sh = getSheet("Agenda");

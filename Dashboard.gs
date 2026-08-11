@@ -14,7 +14,9 @@ function getDashboardPage() {
 // ======================================
 // STATISTIK DASHBOARD
 // ======================================
-function getDashboardStats() {
+function getDashboardStats(token) {
+  requireRole(token, ["administrator", "petugas pelayanan", "sekretaris kaur"]);
+
   return {
     penduduk: getJumlahData("Penduduk"),
     kk: getJumlahData("KK"),
